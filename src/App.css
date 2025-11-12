@@ -1,148 +1,147 @@
-body {
-  font-family: "Poppins", sans-serif;
-  background: linear-gradient(180deg, #e8f1f8, #fefefe);
+/* ====== Layout utama ====== */
+.page {
   min-height: 100vh;
-  margin: 0;
+  display: flex;
+  justify-content: center;     /* ⬅️ Tengah kiri–kanan */
+  align-items: flex-start;     /* ⬅️ Dari atas */
+  background: linear-gradient(180deg, #eef2f3 0%, #ffffff 100%);
+  padding: 40px 20px;
 }
 
+/* ====== Container ====== */
 .container {
-  width: 95%;
+  width: 100%;
   max-width: 600px;
-  margin: 60px auto;
-  padding: 25px;
-  background: #ffffff;
-  border-radius: 16px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
-}
-
-h1 {
-  text-align: center;
-  color: #1b4b91;
-  font-weight: 600;
-}
-
-.card {
-  background: #f8faff;
-  border-radius: 12px;
-  padding: 20px;
-  margin-bottom: 25px;
-  border: 1px solid #dde6f2;
-}
-
-h3 {
-  margin-top: 0;
-  color: #2c3e50;
-}
-
-.task-form {
+  background: #fff;
+  border-radius: 18px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+  padding: 28px 24px;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  align-items: center;          /* ⬅️ Tengah isi card */
+}
+
+/* ====== Judul ====== */
+h1 {
+  text-align: center;
+  margin-bottom: 24px;
+  font-size: 28px;
+  color: #163e8a;
+  font-weight: 700;
+}
+
+/* ====== Card Form ====== */
+.card {
+  background: #f6f9ff;
+  border: 1px solid #d8e3f0;
+  border-radius: 14px;
+  padding: 20px;
+  width: 100%;
+  max-width: 500px;             /* ⬅️ Biar card gak terlalu lebar */
+  margin-bottom: 24px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;          /* ⬅️ Tengah isi form */
+}
+
+.card h3 {
+  margin-bottom: 12px;
+  color: #22324a;
+  text-align: center;
+}
+
+/* ====== Form ====== */
+.task-form {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
 }
 
 .task-form input {
   padding: 12px;
-  border: 1px solid #ccd5e0;
-  border-radius: 8px;
-  font-size: 14px;
-  transition: border 0.2s;
-}
-
-.task-form input:focus {
-  outline: none;
-  border-color: #4a90e2;
+  border: 1px solid #c9d3e1;
+  border-radius: 10px;
+  background: #101318;
+  color: #f4f7fb;
 }
 
 .task-form button {
   padding: 12px;
-  font-size: 15px;
-  font-weight: 500;
-  color: white;
-  background: #4a90e2;
   border: none;
-  border-radius: 8px;
+  border-radius: 10px;
+  background: #4a90e2;
+  color: #fff;
+  font-weight: 600;
   cursor: pointer;
-  transition: background 0.2s;
+  transition: background 0.3s ease;
 }
 
 .task-form button:hover {
-  background: #357ab8;
+  background: #377dcb;
 }
 
-.message {
-  margin-top: 10px;
-  color: #2e7d32;
-  background: #e9f7ef;
-  padding: 8px 10px;
-  border-radius: 8px;
-  font-size: 13px;
-}
-
+/* ====== List Tugas ====== */
 .task-list {
   list-style: none;
+  width: 100%;
   padding: 0;
-  margin: 0;
 }
 
 .task-list li {
-  background: #f4f7fb;
-  margin-bottom: 12px;
-  padding: 12px 15px;
-  border-radius: 10px;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  border-left: 4px solid #4a90e2;
-  transition: background 0.2s;
+  background: #f0f4f8;
+  border-left: 5px solid #4a90e2;
+  padding: 12px 14px;
+  border-radius: 12px;
+  margin-bottom: 10px;
 }
 
 .task-list li.completed {
-  background: #e0f8e0;
-  border-left-color: #4caf50;
+  background: #e1f8e1;
+  border-left-color: #44b648;
   text-decoration: line-through;
-  color: #555;
-}
-
-.task-info {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
 }
 
 .task-buttons {
   display: flex;
-  gap: 10px;
-}
-
-.task-buttons button {
-  border: none;
-  cursor: pointer;
-  padding: 6px 10px;
-  border-radius: 6px;
-  font-size: 13px;
-  transition: 0.2s;
+  gap: 8px;
 }
 
 .done-btn {
-  background: #4caf50;
-  color: white;
-}
-
-.done-btn:hover {
-  background: #43a047;
+  background: #44b648;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 6px 10px;
 }
 
 .delete-btn {
-  background: #f44336;
-  color: white;
+  background: #f0453a;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 6px 10px;
 }
 
-.delete-btn:hover {
-  background: #d32f2f;
-}
+/* ====== Responsif ====== */
+@media (min-width: 600px) {
+  .task-form {
+    flex-direction: row;
+    align-items: center;
+  }
 
-.empty {
-  text-align: center;
-  color: #777;
-  margin-top: 30px;
+  .task-form input[type="text"] {
+    flex: 1;
+  }
+
+  .task-form input[type="date"] {
+    width: 150px;
+  }
+
+  .task-form button {
+    width: 120px;
+  }
 }
