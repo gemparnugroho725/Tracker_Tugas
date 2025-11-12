@@ -1,46 +1,99 @@
 import { useState, useEffect } from "react";
+import { supabase } from "./supabaseClient";
 import "./App.css";
 
 export default function App() {
-  const [tasks, setTasks] = useState(() => {
-    const saved = localStorage.getItem("tasks");
-    return saved ? JSON.parse(saved) : [];
-  });
+  const [tasks, setTasks] = useState([]);
   const [taskName, setTaskName] = useState("");
   const [deadline, setDeadline] = useState("");
+  const [loading, setLoading] = useState(true);
 
+  // 🔹 Load data pertama kali
   useEffect(() => {
-    localStorage.setItem("tasks", JSON.stringify(tasks));
-  }, [tasks]);
+    fetchTasks();
+  }, []);
 
-  const addTask = () => {
-    if (!taskName || !deadline) return;
-    const newTask = {
-      id: Date.now(),
-      name: taskName,
-      deadline,
-      completed: false,
-    };
-    setTasks([...tasks, newTask]);
-    setTaskName("");
-    setDeadline("");
-  };
+  // 🔹 Ambil data dari Supabase
+  async function fetchTasks() {
+    try {
+      setLoading(true);
+      const { data, error } = await supabase
+        .from("tasks")
+        .select("*")
+        .order("id", { ascending: true });
 
-  const toggleTask = (id) => {
-    setTasks(
-      tasks.map((task) =>
-        task.id === id ? { ...task, completed: !task.completed } : task
-      )
-    );
-  };
+      if (error) throw error;
 
-  const deleteTask = (id) => {
-    setTasks(tasks.filter((task) => task.id !== id));
-  };
+      console.log("✅ Tasks fetched:", data);
+      setTasks(data || []);
+    } catch (err) {
+      console.error("❌ Error fetching tasks:", err.message);
+      alert("Gagal mengambil data tugas. Cek koneksi Supabase.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  // 🔹 Tambah task baru
+  async function addTask() {
+    if (!taskName || !deadline) {
+      alert("Isi nama dan tanggal dulu bro!");
+      return;
+    }
+
+    try {
+      const { error } = await supabase
+        .from("tasks")
+        .insert([{ name: taskName, deadline, completed: false }]);
+
+      if (error) throw error;
+
+      console.log("✅ Task added:", taskName);
+      setTaskName("");
+      setDeadline("");
+      fetchTasks();
+    } catch (err) {
+      console.error("❌ Error adding task:", err.message);
+      alert("Gagal menambah tugas.");
+    }
+  }
+
+  // 🔹 Toggle status selesai
+  async function toggleTask(id, completed) {
+    try {
+      const { error } = await supabase
+        .from("tasks")
+        .update({ completed: !completed })
+        .eq("id", id);
+
+      if (error) throw error;
+
+      console.log(`🔄 Updated task ID ${id} → completed: ${!completed}`);
+      fetchTasks();
+    } catch (err) {
+      console.error("❌ Error updating task:", err.message);
+      alert("Gagal update tugas.");
+    }
+  }
+
+  // 🔹 Hapus task
+  async function deleteTask(id) {
+    try {
+      const { error } = await supabase.from("tasks").delete().eq("id", id);
+      if (error) throw error;
+
+      console.log(`🗑️ Deleted task ID ${id}`);
+      fetchTasks();
+    } catch (err) {
+      console.error("❌ Error deleting task:", err.message);
+      alert("Gagal hapus tugas.");
+    }
+  }
 
   return (
     <div className="container">
       <h1>🗓️ Task Tracker</h1>
+
       <div className="task-input">
         <input
           type="text"
@@ -56,23 +109,27 @@ export default function App() {
         <button onClick={addTask}>Tambah</button>
       </div>
 
-      <ul>
-        {tasks.length === 0 ? (
-          <p className="empty">Belum ada tugas 📭</p>
-        ) : (
-          tasks.map((task) => (
+      {loading ? (
+        <p className="empty">Memuat data...</p>
+      ) : tasks.length === 0 ? (
+        <p className="empty">Belum ada tugas 📭</p>
+      ) : (
+        <ul>
+          {tasks.map((task) => (
             <li key={task.id} className={task.completed ? "completed" : ""}>
               <span>
                 {task.name} (📅 {task.deadline})
               </span>
               <div>
-                <button onClick={() => toggleTask(task.id)}>✔️</button>
+                <button onClick={() => toggleTask(task.id, task.completed)}>
+                  ✔️
+                </button>
                 <button onClick={() => deleteTask(task.id)}>🗑️</button>
               </div>
             </li>
-          ))
-        )}
-      </ul>
+          ))}
+        </ul>
+      )}
     </div>
   );
 }

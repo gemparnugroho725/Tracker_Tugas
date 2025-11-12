@@ -1,7 +1,11 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 
-// https://vite.dev/config/
+// ✅ FIX untuk Netlify blank screen
 export default defineConfig({
   plugins: [react()],
+  base: './',
+  build: {
+    outDir: 'dist',
+  },
 })
