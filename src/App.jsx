@@ -7,124 +7,111 @@ export default function App() {
   const [taskName, setTaskName] = useState("");
   const [deadline, setDeadline] = useState("");
   const [loading, setLoading] = useState(true);
+  const [message, setMessage] = useState("");
 
-  // 🔹 Load data pertama kali
   useEffect(() => {
     fetchTasks();
   }, []);
 
-  // 🔹 Ambil data dari Supabase
   async function fetchTasks() {
     try {
       setLoading(true);
-      const { data, error } = await supabase
-        .from("tasks")
-        .select("*")
-        .order("id", { ascending: true });
-
+      const { data, error } = await supabase.from("tasks").select("*").order("id", { ascending: true });
       if (error) throw error;
-
-      console.log("✅ Tasks fetched:", data);
       setTasks(data || []);
     } catch (err) {
-      console.error("❌ Error fetching tasks:", err.message);
-      alert("Gagal mengambil data tugas. Cek koneksi Supabase.");
+      console.error("❌ Error fetching:", err.message);
+      setMessage("Gagal mengambil data tugas");
     } finally {
       setLoading(false);
     }
   }
 
-  // 🔹 Tambah task baru
   async function addTask() {
     if (!taskName || !deadline) {
-      alert("Isi nama dan tanggal dulu bro!");
+      setMessage("Isi nama tugas dan tanggal dulu ya 😅");
       return;
     }
 
     try {
-      const { error } = await supabase
-        .from("tasks")
-        .insert([{ name: taskName, deadline, completed: false }]);
-
+      const { error } = await supabase.from("tasks").insert([{ name: taskName, deadline, completed: false }]);
       if (error) throw error;
-
-      console.log("✅ Task added:", taskName);
       setTaskName("");
       setDeadline("");
+      setMessage("✅ Tugas berhasil ditambahkan!");
       fetchTasks();
     } catch (err) {
       console.error("❌ Error adding task:", err.message);
-      alert("Gagal menambah tugas.");
+      setMessage("Gagal menambah tugas.");
     }
   }
 
-  // 🔹 Toggle status selesai
   async function toggleTask(id, completed) {
     try {
-      const { error } = await supabase
-        .from("tasks")
-        .update({ completed: !completed })
-        .eq("id", id);
-
-      if (error) throw error;
-
-      console.log(`🔄 Updated task ID ${id} → completed: ${!completed}`);
+      await supabase.from("tasks").update({ completed: !completed }).eq("id", id);
       fetchTasks();
     } catch (err) {
-      console.error("❌ Error updating task:", err.message);
-      alert("Gagal update tugas.");
+      console.error(err.message);
     }
   }
 
-  // 🔹 Hapus task
   async function deleteTask(id) {
     try {
-      const { error } = await supabase.from("tasks").delete().eq("id", id);
-      if (error) throw error;
-
-      console.log(`🗑️ Deleted task ID ${id}`);
+      await supabase.from("tasks").delete().eq("id", id);
       fetchTasks();
     } catch (err) {
-      console.error("❌ Error deleting task:", err.message);
-      alert("Gagal hapus tugas.");
+      console.error(err.message);
     }
   }
 
   return (
     <div className="container">
-      <h1>🗓️ Task Tracker</h1>
+      <h1>🧠 Task Tracker</h1>
 
-      <div className="task-input">
-        <input
-          type="text"
-          placeholder="Nama tugas..."
-          value={taskName}
-          onChange={(e) => setTaskName(e.target.value)}
-        />
-        <input
-          type="date"
-          value={deadline}
-          onChange={(e) => setDeadline(e.target.value)}
-        />
-        <button onClick={addTask}>Tambah</button>
+      <div className="card">
+        <h3>Tambah Tugas Baru</h3>
+        <div className="task-form">
+          <input
+            type="text"
+            placeholder="✏️ Nama tugas"
+            value={taskName}
+            onChange={(e) => setTaskName(e.target.value)}
+          />
+          <input
+            type="date"
+            value={deadline}
+            onChange={(e) => setDeadline(e.target.value)}
+          />
+          <button onClick={addTask}>+ Tambah</button>
+        </div>
+        {message && <p className="message">{message}</p>}
       </div>
 
       {loading ? (
-        <p className="empty">Memuat data...</p>
+        <p className="empty">⏳ Memuat tugas...</p>
       ) : tasks.length === 0 ? (
-        <p className="empty">Belum ada tugas 📭</p>
+        <p className="empty">📭 Belum ada tugas</p>
       ) : (
-        <ul>
+        <ul className="task-list">
           {tasks.map((task) => (
             <li key={task.id} className={task.completed ? "completed" : ""}>
-              <span>
-                {task.name} (📅 {task.deadline})
-              </span>
-              <div>
-                <button onClick={() => toggleTask(task.id, task.completed)}>
-                  ✔️
+              <div className="task-info">
+                <strong>{task.name}</strong>
+                <span>📅 {task.deadline}</span>
+              </div>
+              <div className="task-buttons">
+                <button
+                  className="done-btn"
+                  onClick={() => toggleTask(task.id, task.completed)}
+                >
+                  {task.completed ? "↩️ Batal" : "✅ Selesai"}
                 </button>
-                <button onClick={() => deleteTask(task.id)}>🗑️</button>
+                <button
+                  className="delete-btn"
+                  onClick={() => deleteTask(task.id)}
+                >
+                  🗑️ Hapus
+                </button>
               </div>
             </li>
           ))}
