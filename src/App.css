@@ -1,66 +1,153 @@
+/* ====== NAVBAR ====== */
+.navbar {
+  background: linear-gradient(135deg, #4a90e2 0%, #357abd 100%);
+  padding: 16px 20px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+}
+
+.navbar-content {
+  max-width: 1400px;
+  margin: 0 auto;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 20px;
+}
+
+.navbar-title {
+  margin: 0;
+  font-size: 22px;
+  color: #ffffff;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.navbar-user {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.user-info {
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.9);
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.logout-btn {
+  padding: 8px 16px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  background: rgba(255, 255, 255, 0.1);
+  color: #ffffff;
+  border-radius: 8px;
+  font-weight: 700;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.logout-btn:hover {
+  background: rgba(255, 255, 255, 0.2);
+  border-color: rgba(255, 255, 255, 0.5);
+  transform: translateY(-2px);
+}
+
+.logout-btn:active {
+  transform: translateY(0);
+}
+
+@media (max-width: 640px) {
+  .navbar-content {
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .navbar-title {
+    font-size: 18px;
+  }
+
+  .logout-btn {
+    width: 100%;
+    justify-content: center;
+    padding: 10px 12px;
+  }
+}
+
+/* ====== RESET DASAR ====== */
 html, body, #root {
   height: 100%;
   width: 100%;
   margin: 0;
   padding: 0;
-  background: linear-gradient(180deg, #eef2f3 0%, #ffffff 100%) !important;
+  background: #f5f7fa !important;
   color: #16202a;
+  font-family: "Poppins", Arial, sans-serif;
   overflow-x: hidden;
 }
 
-/* ====== Layout utama ====== */
+/* ====== Layout Utama ====== */
 .page {
   min-height: 100vh;
   width: 100%;
   display: flex;
-  justify-content: center;   /* Tengah kiri–kanan */
-  align-items: center;       /* Tengah atas–bawah */
-  background: linear-gradient(180deg, #eef2f3 0%, #ffffff 100%);
-  overflow-x: hidden;        /* cegah item ke kanan layar */
-  margin: 0;
-  padding: 0;
+  flex-direction: column;
+  background: #f5f7fa;
 }
 
-/* ====== Container ====== */
-.container {
-  width: 90%;
-  max-width: 600px;
-  background: #fff;
-  border-radius: 18px;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
-  padding: 28px 24px;
-  text-align: center;
-  margin: auto;              /* pastikan di tengah horizontal */
+/* ====== BAGIAN ATAS - FORM ====== */
+.top-section {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 40px 20px;
+  flex-shrink: 0;
 }
 
+.container-form {
+  width: 100%;
+  max-width: 900px;
+  animation: slideIn 0.3s ease;
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
 
 /* ====== Judul ====== */
 h1 {
   text-align: center;
-  margin-bottom: 24px;
-  font-size: 28px;
+  margin: 0 0 28px 0;
+  font-size: 32px;
   color: #163e8a;
-  font-weight: 700;
-}
-
-/* ====== Card Form ====== */
-.card {
-  background: #f6f9ff;
-  border: 1px solid #d8e3f0;
-  border-radius: 14px;
-  padding: 20px;
-  width: 100%;
-  max-width: 500px;             /* ⬅️ Biar card gak terlalu lebar */
-  margin-bottom: 24px;
+  font-weight: 800;
   display: flex;
-  flex-direction: column;
-  align-items: center;          /* ⬅️ Tengah isi form */
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  letter-spacing: -0.5px;
 }
 
-.card h3 {
-  margin-bottom: 12px;
-  color: #22324a;
-  text-align: center;
+/* ====== Form Wrapper ====== */
+.form-wrapper {
+  margin-bottom: 0;
 }
 
 /* ====== Form ====== */
@@ -68,30 +155,238 @@ h1 {
   width: 100%;
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 12px;
+  align-items: stretch;
 }
 
-.task-form input {
-  padding: 12px;
-  border: 1px solid #c9d3e1;
-  border-radius: 10px;
-  background: #101318;
-  color: #f4f7fb;
+/* Desktop layout */
+@media (min-width: 900px) {
+  .task-form {
+    flex-direction: row;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .task-form input[type="text"],
+  .task-form input[type="date"],
+  .subject-select {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .task-form button {
+    flex-shrink: 0;
+    width: auto;
+    min-width: 130px;
+  }
 }
 
+.task-form input,
+.subject-select {
+  padding: 12px 16px;
+  border: 1.5px solid #d8e3f0;
+  border-radius: 12px;
+  background: #ffffff;
+  color: #16202a;
+  font-family: inherit;
+  font-size: 14px;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+}
+
+.task-form input::placeholder {
+  color: #a8b5c4;
+}
+
+.subject-select:focus,
+.task-form input:focus {
+  outline: none;
+  border-color: #4a90e2;
+  box-shadow: 0 0 0 4px rgba(74, 144, 226, 0.15), 0 2px 8px rgba(0, 0, 0, 0.08);
+  background: #ffffff;
+}
+
+/* ====== Tombol Tambah ====== */
 .task-form button {
-  padding: 12px;
+  padding: 12px 24px;
   border: none;
-  border-radius: 10px;
-  background: #4a90e2;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #4a90e2 0%, #357abd 100%);
   color: #fff;
-  font-weight: 600;
+  font-weight: 700;
   cursor: pointer;
-  transition: background 0.3s ease;
+  transition: all 0.3s ease;
+  font-size: 14px;
+  white-space: nowrap;
+  box-shadow: 0 4px 12px rgba(74, 144, 226, 0.3);
 }
 
 .task-form button:hover {
-  background: #377dcb;
+  background: linear-gradient(135deg, #377dcb 0%, #2f6ab5 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(74, 144, 226, 0.4);
+}
+
+.task-form button:active {
+  transform: translateY(0);
+}
+
+/* ====== Pesan ====== */
+.message {
+  margin-top: 14px;
+  padding: 12px 16px;
+  border-radius: 10px;
+  font-weight: 600;
+  animation: fadeIn 0.3s ease;
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.message.success {
+  background: #d4f5dd;
+  color: #1e6e2e;
+  border-left: 4px solid #44b648;
+}
+
+.message.error {
+  background: #fde8e5;
+  color: #8b3a2e;
+  border-left: 4px solid #f0453a;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-5px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ====== DIVIDER ====== */
+.divider {
+  height: 1px;
+  background: linear-gradient(90deg, transparent 0%, #d8e3f0 50%, transparent 100%);
+  width: 100%;
+}
+
+/* ====== BAGIAN BAWAH - 2 KOLOM ====== */
+.bottom-section {
+  flex: 1;
+  display: flex;
+  gap: 28px;
+  padding: 40px 20px;
+  overflow-y: auto;
+  max-width: 1400px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+/* ====== KOLOM KIRI - LIST TUGAS ====== */
+.container-list {
+  flex: 1;
+  min-width: 0;
+  animation: slideIn 0.3s ease;
+}
+
+/* ====== Tugas pada tanggal terpilih ====== */
+.selected-date-tasks {
+  margin-bottom: 32px;
+  animation: slideIn 0.3s ease;
+}
+
+.selected-date-title {
+  font-size: 17px;
+  color: #163e8a;
+  font-weight: 800;
+  margin: 0 0 16px 0;
+  padding-bottom: 12px;
+  border-bottom: 3px solid #f0453a;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* ====== All Tasks Title ====== */
+.all-tasks-title {
+  font-size: 18px;
+  color: #163e8a;
+  font-weight: 800;
+  margin: 32px 0 20px 0;
+  padding-bottom: 12px;
+  border-bottom: 3px solid #4a90e2;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  grid-column: 1 / -1;
+}
+
+/* ====== Subject Sections ====== */
+.subject-sections {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 28px;
+}
+
+.subject-section {
+  animation: slideIn 0.3s ease;
+  background: #ffffff;
+  border-radius: 12px;
+  padding: 16px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  min-height: 100px;
+}
+
+.subject-title {
+  margin: 0 0 16px 0;
+  font-size: 15px;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-left: 8px;
+  border-left: 5px solid #4a90e2;
+  color: #163e8a;
+}
+
+/* Warna untuk setiap mata kuliah */
+.subject-title.forensik-digital {
+  border-left-color: #FF6B6B;
+  color: #FF6B6B;
+}
+
+.subject-title.etos-sandi {
+  border-left-color: #4ECDC4;
+  color: #4ECDC4;
+}
+
+.subject-title.tata-kelola {
+  border-left-color: #FFD93D;
+  color: #FFD93D;
+}
+
+.subject-title.analisis-aplikasi {
+  border-left-color: #6C5CE7;
+  color: #6C5CE7;
+}
+
+.subject-title.uji-penetrasi {
+  border-left-color: #A29BFE;
+  color: #A29BFE;
+}
+
+.subject-title.monitoring-deteksi {
+  border-left-color: #00B894;
+  color: #00B894;
+}
+
+.subject-title.hukum-etika {
+  border-left-color: #E17055;
+  color: #E17055;
 }
 
 /* ====== List Tugas ====== */
@@ -99,62 +394,1013 @@ h1 {
   list-style: none;
   width: 100%;
   padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-height: 50px;
 }
 
 .task-list li {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  background: #f0f4f8;
-  border-left: 5px solid #4a90e2;
-  padding: 12px 14px;
+  background: #ffffff;
+  border-left: 4px solid #4a90e2;
+  padding: 14px 16px;
   border-radius: 12px;
-  margin-bottom: 10px;
+  transition: all 0.2s ease;
+  gap: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
+.task-list li:hover {
+  transform: translateX(4px);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.1);
+  background: #f8fafb;
 }
 
 .task-list li.completed {
-  background: #e1f8e1;
+  background: #f0f8f0;
   border-left-color: #44b648;
+}
+
+.task-list li.completed strong {
+  color: #6c8e5c;
   text-decoration: line-through;
 }
 
-.task-buttons {
+.task-info {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  flex: 1;
+  text-align: left;
+  min-width: 0;
+}
+
+.task-info strong {
+  color: #16202a;
+  font-size: 15px;
+  word-break: break-word;
+  font-weight: 700;
+}
+
+.task-meta {
   display: flex;
   gap: 8px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.badge {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.subject-badge {
+  background: #e3f0ff;
+  color: #163e8a;
+}
+
+.deadline-badge {
+  background: #fff3e0;
+  color: #e65100;
+}
+
+.task-list li.completed .subject-badge {
+  background: #c8e6c9;
+  color: #2e7d32;
+}
+
+.task-list li.completed .deadline-badge {
+  background: #c8e6c9;
+  color: #2e7d32;
+}
+
+/* ====== Tombol Aksi ====== */
+.task-buttons {
+  display: flex;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.done-btn,
+.delete-btn,
+.edit-btn {
+  border: none;
+  border-radius: 8px;
+  padding: 8px 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 36px;
+  height: 36px;
 }
 
 .done-btn {
+  background: #e8f5e9;
+  color: #44b648;
+  border: 2px solid #44b648;
+}
+
+.done-btn:hover {
   background: #44b648;
   color: #fff;
-  border: none;
-  border-radius: 8px;
-  padding: 6px 10px;
+  transform: scale(1.08);
 }
 
 .delete-btn {
-  background: #f0453a;
-  color: #fff;
-  border: none;
-  border-radius: 8px;
-  padding: 6px 10px;
+  background: #ffebee;
+  color: #f0453a;
+  border: 2px solid #f0453a;
 }
 
-/* ====== Responsif ====== */
-@media (min-width: 600px) {
-  .task-form {
-    flex-direction: row;
-    align-items: center;
+.delete-btn:hover {
+  background: #f0453a;
+  color: #fff;
+  transform: scale(1.08);
+}
+
+.edit-btn {
+  background: #fff3e0;
+  color: #e65100;
+  border: 2px solid #e65100;
+}
+
+.edit-btn:hover {
+  background: #e65100;
+  color: #fff;
+  transform: scale(1.08);
+}
+
+/* ====== TASK GROUP ====== */
+.task-group {
+  margin-bottom: 20px;
+  border-radius: 12px;
+  overflow: hidden;
+  animation: slideIn 0.3s ease;
+}
+
+.task-group-header {
+  padding: 12px 16px;
+  border-left: 5px solid #4a90e2;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-radius: 10px 10px 0 0;
+  margin-bottom: 8px;
+}
+
+.task-group-label {
+  font-size: 13px;
+  font-weight: 700;
+  color: #163e8a;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* ====== TASK STATUS COLOR ====== */
+.task-list li.pending {
+  border-left-color: #f0453a;
+  background: #ffffff;
+}
+
+.task-list li.pending:hover {
+  background: #fff5f5;
+  border-left-color: #c5362a;
+}
+
+/* ====== SHOW MORE / SHOW LESS BUTTON ====== */
+.show-more-btn,
+.show-less-btn {
+  width: 100%;
+  padding: 12px 16px;
+  border: 2px dashed #4a90e2;
+  background: #f8fafb;
+  color: #4a90e2;
+  border-radius: 10px;
+  cursor: pointer;
+  font-weight: 700;
+  font-size: 13px;
+  transition: all 0.3s ease;
+  margin-top: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.show-more-btn:hover,
+.show-less-btn:hover {
+  background: #e3f0ff;
+  border-color: #357abd;
+  color: #163e8a;
+  transform: translateY(-2px);
+}
+
+.show-more-btn:active,
+.show-less-btn:active {
+  transform: translateY(0);
+}
+
+.show-more-btn.completed {
+  border-color: #44b648;
+  color: #44b648;
+}
+
+.show-more-btn.completed:hover {
+  background: #f0f8f0;
+  border-color: #38a038;
+  color: #2e7d32;
+}
+
+/* ====== KOLOM KANAN - CALENDAR ====== */
+.calendar-section {
+  width: 100%;
+  max-width: 420px;
+  flex-shrink: 0;
+  animation: slideIn 0.3s ease;
+}
+
+.calendar-wrapper {
+  background: #ffffff;
+  border: 2px solid #e8ecf1;
+  border-radius: 16px;
+  padding: 24px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+  position: sticky;
+  top: 20px;
+  transition: all 0.3s ease;
+}
+
+.calendar-wrapper:hover {
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+}
+
+.calendar-title {
+  margin: 0 0 18px 0;
+  font-size: 17px;
+  color: #16202a;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.calendar-container {
+  margin-bottom: 16px;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.selected-date-info {
+  margin: 16px 0 0 0;
+  padding-top: 16px;
+  border-top: 2px solid #e8ecf1;
+  text-align: center;
+}
+
+.date-display {
+  margin: 0 0 6px 0;
+  font-size: 16px;
+  color: #4a90e2;
+  font-weight: 800;
+}
+
+.task-count {
+  margin: 0;
+  font-size: 13px;
+  color: #8b95a8;
+  font-weight: 600;
+}
+
+/* ====== CUSTOM CALENDAR STYLES ====== */
+.custom-calendar {
+  width: 100%;
+  border: none;
+  background: transparent;
+  border-radius: 10px;
+  overflow: hidden;
+  font-family: inherit;
+}
+
+.custom-calendar .react-calendar__navigation {
+  background: linear-gradient(135deg, #4a90e2 0%, #357abd 100%);
+  padding: 8px;
+  margin-bottom: 16px;
+  border-radius: 12px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 6px;
+}
+
+.custom-calendar .react-calendar__navigation button {
+  color: #000000 !important;
+  font-weight: 700;
+  font-size: 18px;
+  min-width: 40px;
+  background: rgba(255, 255, 255, 0.2);
+  border: none;
+  padding: 8px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.custom-calendar .react-calendar__navigation button:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+.custom-calendar .react-calendar__navigation__label {
+  color: #16202a !important;
+  font-weight: 800;
+  font-size: 15px;
+  flex-grow: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.95);
+  border-radius: 8px;
+  padding: 8px 12px;
+  text-align: center;
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin: 0;
+}
+
+/* ====== WEEKDAYS HEADER ====== */
+.custom-calendar .react-calendar__month-view__weekdays {
+  background: #f5f7fa;
+  border: 2px solid #e8ecf1;
+  border-bottom: none;
+  padding: 0;
+  text-align: center;
+  margin-bottom: 0;
+  display: table;
+  width: 100%;
+  table-layout: fixed;
+  border-radius: 12px 12px 0 0;
+}
+
+.custom-calendar .react-calendar__month-view__weekdays__weekday {
+  color: #16202a !important;
+  font-weight: 800;
+  font-size: 13px;
+  padding: 14px 0;
+  text-decoration: none !important;
+  letter-spacing: 0.5px;
+  display: table-cell;
+  border-right: 1px solid #e8ecf1;
+  width: 14.28%;
+}
+
+.custom-calendar .react-calendar__month-view__weekdays__weekday:last-child {
+  border-right: none;
+}
+
+.custom-calendar .react-calendar__month-view__weekdays__weekday abbr {
+  text-decoration: none !important;
+  color: #16202a !important;
+}
+
+/* ====== DAYS GRID ====== */
+.custom-calendar .react-calendar__month-view__days {
+  padding: 0;
+  gap: 0;
+  display: table;
+  width: 100%;
+  table-layout: fixed;
+  border: 2px solid #e8ecf1;
+  border-top: none;
+  border-radius: 0 0 12px 12px;
+}
+
+.custom-calendar .react-calendar__tile {
+  height: 64px;
+  display: table-cell;
+  vertical-align: middle;
+  text-align: center;
+  border: 1px solid #e8ecf1;
+  border-left: none;
+  border-top: none;
+  background: #ffffff;
+  color: #16202a !important;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: 14px;
+  font-weight: 700;
+  position: relative;
+  padding: 0;
+  width: 14.28%;
+}
+
+.custom-calendar .react-calendar__tile:nth-child(7n+1) {
+  border-left: 1px solid #e8ecf1;
+}
+
+.custom-calendar .react-calendar__tile:hover {
+  background: #e8f3ff;
+  border-color: #4a90e2;
+  color: #16202a !important;
+}
+
+.custom-calendar .react-calendar__tile--now {
+  background: #e3f0ff;
+  border-color: #4a90e2;
+  color: #16202a !important;
+  font-weight: 800;
+}
+
+.custom-calendar .react-calendar__tile--active {
+  background: linear-gradient(135deg, #4a90e2 0%, #357abd 100%);
+  color: #ffffff !important;
+  border-color: #4a90e2;
+  font-weight: 800;
+}
+
+.custom-calendar .react-calendar__tile--active:hover {
+  background: linear-gradient(135deg, #377dcb 0%, #2f6ab5 100%);
+}
+
+.custom-calendar .react-calendar__tile--disabled {
+  background: #f0f2f5;
+  color: #d0d4db !important;
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+/* ====== BADGE SUBJECT DENGAN WARNA MATA KULIAH ====== */
+.badge.subject-badge {
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 700;
+  display: inline-block;
+}
+
+/* Forensik Digital */
+.subject-badge.forensik-digital {
+  background: #FFE5E5;
+  color: #FF6B6B;
+  border-left: 3px solid #FF6B6B;
+}
+
+/* Etos & Sandi */
+.subject-badge.etos-sandi {
+  background: #E0F7F6;
+  color: #4ECDC4;
+  border-left: 3px solid #4ECDC4;
+}
+
+/* Tata Kelola */
+.subject-badge.tata-kelola {
+  background: #FFFCE0;
+  color: #FFD93D;
+  border-left: 3px solid #FFD93D;
+}
+
+/* Analisis Aplikasi */
+.subject-badge.analisis-aplikasi {
+  background: #F3F0FF;
+  color: #6C5CE7;
+  border-left: 3px solid #6C5CE7;
+}
+
+/* Uji Penetrasi */
+.subject-badge.uji-penetrasi {
+  background: #F9F6FF;
+  color: #A29BFE;
+  border-left: 3px solid #A29BFE;
+}
+
+/* Monitoring & Deteksi */
+.subject-badge.monitoring-deteksi {
+  background: #E8F8F0;
+  color: #00B894;
+  border-left: 3px solid #00B894;
+}
+
+/* Hukum & Etika */
+.subject-badge.hukum-etika {
+  background: #FEEAE5;
+  color: #E17055;
+  border-left: 3px solid #E17055;
+}
+
+/* ====== CALENDAR DATE WITH TASK - WARNA BERBEDA ====== */
+.calendar-date-with-task {
+  position: relative !important;
+  background: linear-gradient(135deg, #FFD93D 0%, #FF9999 100%) !important;
+  border-color: #FFD93D !important;
+  color: #ffffff !important;
+  font-weight: 800 !important;
+  box-shadow: 0 2px 8px rgba(255, 217, 61, 0.3);
+}
+
+.calendar-date-with-task:hover {
+  background: linear-gradient(135deg, #FFC41A 0%, #FF7F7F 100%) !important;
+  border-color: #FFC41A !important;
+  transform: scale(1.05);
+}
+
+/* Forensik Digital */
+.calendar-date-with-task.forensik-digital {
+  background: linear-gradient(135deg, #FF6B6B 0%, #FF8E8E 100%) !important;
+  border-color: #FF6B6B !important;
+  box-shadow: 0 2px 8px rgba(255, 107, 107, 0.3);
+}
+
+.calendar-date-with-task.forensik-digital:hover {
+  background: linear-gradient(135deg, #FF5252 0%, #FF7676 100%) !important;
+  border-color: #FF5252 !important;
+}
+
+/* Etos & Sandi */
+.calendar-date-with-task.etos-sandi {
+  background: linear-gradient(135deg, #4ECDC4 0%, #7DD9D1 100%) !important;
+  border-color: #4ECDC4 !important;
+  box-shadow: 0 2px 8px rgba(78, 205, 196, 0.3);
+}
+
+.calendar-date-with-task.etos-sandi:hover {
+  background: linear-gradient(135deg, #3FB5B0 0%, #67CCBB 100%) !important;
+  border-color: #3FB5B0 !important;
+}
+
+/* Tata Kelola */
+.calendar-date-with-task.tata-kelola {
+  background: linear-gradient(135deg, #FFD93D 0%, #FFE680 100%) !important;
+  border-color: #FFD93D !important;
+  box-shadow: 0 2px 8px rgba(255, 217, 61, 0.3);
+}
+
+.calendar-date-with-task.tata-kelola:hover {
+  background: linear-gradient(135deg, #FFC41A 0%, #FFD966 100%) !important;
+  border-color: #FFC41A !important;
+}
+
+/* Analisis Aplikasi */
+.calendar-date-with-task.analisis-aplikasi {
+  background: linear-gradient(135deg, #6C5CE7 0%, #9F8FE5 100%) !important;
+  border-color: #6C5CE7 !important;
+  box-shadow: 0 2px 8px rgba(108, 92, 231, 0.3);
+}
+
+.calendar-date-with-task.analisis-aplikasi:hover {
+  background: linear-gradient(135deg, #5E4CCE 0%, #8B7BD4 100%) !important;
+  border-color: #5E4CCE !important;
+}
+
+/* Uji Penetrasi */
+.calendar-date-with-task.uji-penetrasi {
+  background: linear-gradient(135deg, #A29BFE 0%, #B8B0FF 100%) !important;
+  border-color: #A29BFE !important;
+  box-shadow: 0 2px 8px rgba(162, 155, 254, 0.3);
+}
+
+.calendar-date-with-task.uji-penetrasi:hover {
+  background: linear-gradient(135deg, #9B90FD 0%, #A79DFE 100%) !important;
+  border-color: #9B90FD !important;
+}
+
+/* Monitoring & Deteksi */
+.calendar-date-with-task.monitoring-deteksi {
+  background: linear-gradient(135deg, #00B894 0%, #4DD9B8 100%) !important;
+  border-color: #00B894 !important;
+  box-shadow: 0 2px 8px rgba(0, 184, 148, 0.3);
+}
+
+.calendar-date-with-task.monitoring-deteksi:hover {
+  background: linear-gradient(135deg, #00A086 0%, #3AC9A5 100%) !important;
+  border-color: #00A086 !important;
+}
+
+/* Hukum & Etika */
+.calendar-date-with-task.hukum-etika {
+  background: linear-gradient(135deg, #E17055 0%, #E89080 100%) !important;
+  border-color: #E17055 !important;
+  box-shadow: 0 2px 8px rgba(225, 112, 85, 0.3);
+}
+
+.calendar-date-with-task.hukum-etika:hover {
+  background: linear-gradient(135deg, #D45D3F 0%, #DC7D63 100%) !important;
+  border-color: #D45D3F !important;
+}
+
+.custom-calendar .react-calendar__tile.calendar-date-with-task.react-calendar__tile--active {
+  background: linear-gradient(135deg, #4a90e2 0%, #357abd 100%) !important;
+  color: #ffffff !important;
+}
+
+/* ====== MODAL OVERLAY ====== */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 2000;
+  padding: 20px;
+  animation: fadeIn 0.3s ease;
+}
+
+/* ====== MODAL CONTENT ====== */
+.modal-content {
+  background: #ffffff;
+  border-radius: 16px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+  width: 100%;
+  max-width: 500px;
+  animation: slideUp 0.3s ease;
+  overflow: hidden;
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ====== MODAL HEADER ====== */
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 24px;
+  background: linear-gradient(135deg, #4a90e2 0%, #357abd 100%);
+  color: #ffffff;
+  border-bottom: 2px solid #2f6ab5;
+}
+
+.modal-header h2 {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 800;
+}
+
+.modal-close {
+  background: rgba(255, 255, 255, 0.2);
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  color: #ffffff;
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 18px;
+  font-weight: 700;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+}
+
+.modal-close:hover {
+  background: rgba(255, 255, 255, 0.3);
+  border-color: rgba(255, 255, 255, 0.5);
+  transform: rotate(90deg);
+}
+
+/* ====== MODAL BODY ====== */
+.modal-body {
+  padding: 28px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.form-group label {
+  font-size: 13px;
+  font-weight: 700;
+  color: #163e8a;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.form-group input,
+.form-group select {
+  padding: 12px 14px;
+  border: 1.5px solid #d8e3f0;
+  border-radius: 10px;
+  background: #ffffff;
+  color: #16202a;
+  font-family: inherit;
+  font-size: 14px;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+}
+
+.form-group input::placeholder {
+  color: #a8b5c4;
+}
+
+.form-group input:focus,
+.form-group select:focus {
+  outline: none;
+  border-color: #4a90e2;
+  box-shadow: 0 0 0 4px rgba(74, 144, 226, 0.15), 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+/* ====== MODAL FOOTER ====== */
+.modal-footer {
+  display: flex;
+  gap: 12px;
+  padding: 20px 24px;
+  background: #f5f7fa;
+  border-top: 1px solid #e8ecf1;
+  justify-content: flex-end;
+}
+
+.btn-cancel,
+.btn-save {
+  padding: 12px 20px;
+  border: none;
+  border-radius: 10px;
+  font-weight: 700;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.btn-cancel {
+  background: #e8ecf1;
+  color: #6c7a89;
+  border: 2px solid #d8e3f0;
+}
+
+.btn-cancel:hover {
+  background: #d8e3f0;
+  border-color: #c7d4e0;
+  transform: translateY(-2px);
+}
+
+.btn-save {
+  background: linear-gradient(135deg, #44b648 0%, #38a038 100%);
+  color: #ffffff;
+  box-shadow: 0 4px 12px rgba(68, 182, 72, 0.3);
+}
+
+.btn-save:hover {
+  background: linear-gradient(135deg, #3aa03e 0%, #2e8630 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(68, 182, 72, 0.4);
+}
+
+.btn-save:active,
+.btn-cancel:active {
+  transform: translateY(0);
+}
+
+/* ====== SUBJECT SELECT STYLING ====== */
+.subject-select {
+  padding: 12px 14px;
+  border: 2px solid #d8e3f0;
+  border-radius: 10px;
+  background: #ffffff;
+  color: #16202a;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+}
+
+.subject-select:hover {
+  border-color: #4a90e2;
+  box-shadow: 0 2px 8px rgba(74, 144, 226, 0.15);
+}
+
+.subject-select:focus {
+  outline: none;
+  border-color: #4a90e2;
+  box-shadow: 0 0 0 4px rgba(74, 144, 226, 0.15);
+}
+
+.subject-select option {
+  padding: 8px 12px;
+  border-left: 5px solid;
+  font-weight: 600;
+}
+
+/* ====== BADGE SUBJECT ====== */
+.badge.subject-badge {
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 700;
+  display: inline-block;
+}
+
+/* Forensik Digital */
+.subject-badge.forensik-digital {
+  background: #FFE5E5;
+  color: #FF6B6B;
+  border-left: 3px solid #FF6B6B;
+}
+
+/* Etos & Sandi */
+.subject-badge.etos-sandi {
+  background: #E0F7F6;
+  color: #4ECDC4;
+  border-left: 3px solid #4ECDC4;
+}
+
+/* Tata Kelola */
+.subject-badge.tata-kelola {
+  background: #FFFCE0;
+  color: #FFD93D;
+  border-left: 3px solid #FFD93D;
+}
+
+/* Analisis Aplikasi */
+.subject-badge.analisis-aplikasi {
+  background: #F3F0FF;
+  color: #6C5CE7;
+  border-left: 3px solid #6C5CE7;
+}
+
+/* Uji Penetrasi */
+.subject-badge.uji-penetrasi {
+  background: #F9F6FF;
+  color: #A29BFE;
+  border-left: 3px solid #A29BFE;
+}
+
+/* Monitoring & Deteksi */
+.subject-badge.monitoring-deteksi {
+  background: #E8F8F0;
+  color: #00B894;
+  border-left: 3px solid #00B894;
+}
+
+/* Hukum & Etika */
+.subject-badge.hukum-etika {
+  background: #FEEAE5;
+  color: #E17055;
+  border-left: 3px solid #E17055;
+}
+
+/* ====== RESPONSIVE ====== */
+@media (max-width: 1024px) {
+  .subject-sections {
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+  }
+}
+
+@media (max-width: 768px) {
+  .subject-sections {
+    grid-template-columns: 1fr;
+    gap: 24px;
+  }
+}
+
+@media (max-width: 640px) {
+  .subject-sections {
+    grid-template-columns: 1fr;
+    gap: 16px;
   }
 
-  .task-form input[type="text"] {
-    flex: 1;
+  .task-list li {
+    padding: 12px 14px;
+    gap: 10px;
   }
+}
 
-  .task-form input[type="date"] {
-    width: 150px;
-  }
+/* ====== Subject Section ====== */
+.subject-section {
+  animation: slideIn 0.3s ease;
+  background: #ffffff;
+  border-radius: 12px;
+  padding: 16px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  min-height: 100px;
+}
 
-  .task-form button {
-    width: 120px;
-  }
+.subject-title {
+  margin: 0 0 16px 0;
+  font-size: 15px;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-left: 8px;
+  border-left: 5px solid #4a90e2;
+  color: #163e8a;
+}
+
+/* Warna untuk setiap mata kuliah */
+.subject-title.forensik-digital {
+  border-left-color: #FF6B6B;
+  color: #FF6B6B;
+}
+
+.subject-title.etos-sandi {
+  border-left-color: #4ECDC4;
+  color: #4ECDC4;
+}
+
+.subject-title.tata-kelola {
+  border-left-color: #FFD93D;
+  color: #FFD93D;
+}
+
+.subject-title.analisis-aplikasi {
+  border-left-color: #6C5CE7;
+  color: #6C5CE7;
+}
+
+.subject-title.uji-penetrasi {
+  border-left-color: #A29BFE;
+  color: #A29BFE;
+}
+
+.subject-title.monitoring-deteksi {
+  border-left-color: #00B894;
+  color: #00B894;
+}
+
+.subject-title.hukum-etika {
+  border-left-color: #E17055;
+  color: #E17055;
+}
+
+/* ====== List Tugas ====== */
+.task-list {
+  list-style: none;
+  width: 100%;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-height: 50px;
+}
+
+.task-list li {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #ffffff;
+  border-left: 4px solid #4a90e2;
+  padding: 14px 16px;
+  border-radius: 12px;
+  transition: all 0.2s ease;
+  gap: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
+.task-list li:hover {
+  transform: translateX(4px);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.1);
+  background: #f8fafb;
+}
+
+/* ====== Empty State ====== */
+.empty-state {
+  color: #a8b5c4;
+  font-style: italic;
+  font-size: 14px;
+  padding: 24px;
+  text-align: center;
+  background: #f8fafb;
+  border-radius: 10px;
+  border: 2px dashed #d8e3f0;
 }

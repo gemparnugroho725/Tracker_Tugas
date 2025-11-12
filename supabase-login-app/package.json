@@ -1,0 +1,18 @@
+{
+  "name": "supabase-login-app",
+  "version": "1.0.0",
+  "description": "A web application for user authentication using Supabase.",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "live-server src",
+    "build": "echo 'Build step not defined yet.'"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.0.0"
+  },
+  "devDependencies": {
+    "live-server": "^1.2.1"
+  },
+  "author": "",
+  "license": "ISC"
+}
