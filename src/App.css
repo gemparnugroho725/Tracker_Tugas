@@ -1,7 +1,7 @@
 /* ====== NAVBAR ====== */
 .navbar {
   background: linear-gradient(135deg, #4a90e2 0%, #357abd 100%);
-  padding: 16px 20px;
+  padding: 12px 20px;
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
   position: sticky;
   top: 0;
@@ -17,6 +17,12 @@
   gap: 20px;
 }
 
+.navbar-left {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+}
+
 .navbar-title {
   margin: 0;
   font-size: 22px;
@@ -25,12 +31,14 @@
   display: flex;
   align-items: center;
   gap: 8px;
+  white-space: nowrap;
 }
 
 .navbar-user {
   display: flex;
   align-items: center;
   gap: 16px;
+  white-space: nowrap;
 }
 
 .user-info {
@@ -67,20 +75,137 @@
   transform: translateY(0);
 }
 
-@media (max-width: 640px) {
+/* ====== NAVBAR MENU ====== */
+.navbar-menu {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.nav-link {
+  padding: 8px 16px;
+  background: rgba(255, 255, 255, 0.1);
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  color: #ffffff;
+  border-radius: 8px;
+  font-weight: 700;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+}
+
+.nav-link:hover {
+  background: rgba(255, 255, 255, 0.2);
+  border-color: rgba(255, 255, 255, 0.4);
+  transform: translateY(-2px);
+}
+
+.nav-link.active {
+  background: rgba(255, 255, 255, 0.3);
+  border-color: rgba(255, 255, 255, 0.6);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  transform: translateY(-2px);
+}
+
+@media (max-width: 1024px) {
+  .navbar-left {
+    gap: 16px;
+  }
+
+  .navbar-title {
+    font-size: 20px;
+  }
+
+  .nav-link {
+    padding: 6px 12px;
+    font-size: 12px;
+  }
+}
+
+@media (max-width: 768px) {
   .navbar-content {
-    flex-direction: column;
+    flex-wrap: wrap;
     gap: 12px;
+  }
+
+  .navbar-left {
+    gap: 12px;
+    flex: 1;
+    min-width: 200px;
   }
 
   .navbar-title {
     font-size: 18px;
   }
 
+  .navbar-user {
+    gap: 8px;
+  }
+
+  .user-info {
+    font-size: 12px;
+    display: none;
+  }
+
   .logout-btn {
+    padding: 6px 12px;
+    font-size: 11px;
+  }
+
+  .nav-link {
+    padding: 6px 10px;
+    font-size: 11px;
+  }
+}
+
+@media (max-width: 640px) {
+  .navbar {
+    padding: 10px 12px;
+  }
+
+  .navbar-content {
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .navbar-left {
     width: 100%;
     justify-content: center;
-    padding: 10px 12px;
+  }
+
+  .navbar-title {
+    font-size: 16px;
+    justify-content: center;
+  }
+
+  .navbar-menu {
+    width: 100%;
+    justify-content: center;
+    gap: 8px;
+  }
+
+  .navbar-user {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .user-info {
+    display: flex;
+    font-size: 11px;
+  }
+
+  .logout-btn {
+    padding: 5px 10px;
+    font-size: 10px;
+  }
+
+  .nav-link {
+    padding: 5px 8px;
+    font-size: 10px;
   }
 }
 
@@ -1403,4 +1528,97 @@ h1 {
   background: #f8fafb;
   border-radius: 10px;
   border: 2px dashed #d8e3f0;
+}
+
+/* ====== SCHEDULE PAGE ====== */
+.schedule-page {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  padding: 40px 20px;
+  overflow-y: auto;
+  background: #f5f7fa;
+}
+
+.schedule-container {
+  width: 100%;
+  max-width: 1400px;
+  animation: slideIn 0.3s ease;
+}
+
+.schedule-container h1 {
+  text-align: center;
+  margin: 0 0 12px 0;
+  font-size: 32px;
+  color: #163e8a;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  letter-spacing: -0.5px;
+}
+
+.schedule-subtitle {
+  text-align: center;
+  margin: 0 0 24px 0;
+  font-size: 14px;
+  color: #666;
+  font-weight: 500;
+}
+
+.schedule-wrapper {
+  background: #ffffff;
+  border-radius: 16px;
+  padding: 20px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+  overflow: hidden;
+  margin: 0 20px;
+}
+
+.schedule-iframe {
+  width: 100%;
+  height: 700px;
+  border: none;
+  border-radius: 12px;
+}
+
+@media (max-width: 768px) {
+  .schedule-page {
+    padding: 20px 10px;
+  }
+
+  .schedule-wrapper {
+    padding: 16px;
+    margin: 0 10px;
+  }
+
+  .schedule-iframe {
+    height: 600px;
+  }
+
+  .schedule-container h1 {
+    font-size: 24px;
+    margin: 0 0 8px 0;
+  }
+
+  .schedule-subtitle {
+    font-size: 12px;
+    margin: 0 0 16px 0;
+  }
+}
+
+@media (max-width: 480px) {
+  .schedule-iframe {
+    height: 500px;
+  }
+
+  .schedule-container h1 {
+    font-size: 20px;
+  }
+
+  .schedule-subtitle {
+    font-size: 11px;
+  }
 }

@@ -17,6 +17,7 @@ export default function App() {
   const [messageType, setMessageType] = useState("");
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [tasksOnSelectedDate, setTasksOnSelectedDate] = useState([]);
+  const [currentPage, setCurrentPage] = useState("tasks");
   
   // ====== STATE UNTUK EDIT ======
   const [editingId, setEditingId] = useState(null);
@@ -39,19 +40,13 @@ export default function App() {
     { name: "Hukum dan Etika Profesi", color: "#E17055", bgColor: "#FFECEB" },
   ];
 
-  // ====== HELPER FUNCTION UNTUK GET COLOR ======
-  function getSubjectColor(subjectName) {
-    const subject = subjects.find((s) => s.name === subjectName);
-    return subject || { color: "#666", bgColor: "#f5f5f5" };
-  }
-
   // ====== CHECK LOGIN STATUS ======
   useEffect(() => {
     const savedUser = localStorage.getItem("user");
     if (savedUser) {
       setUser(JSON.parse(savedUser));
       setIsLoggedIn(true);
-      fetchTasks();
+      fetchTasks(JSON.parse(savedUser).id);
     } else {
       setLoading(false);
     }
@@ -61,12 +56,14 @@ export default function App() {
     updateTasksOnSelectedDate();
   }, [tasks, selectedDate]);
 
-  async function fetchTasks() {
+  // ====== FETCH TASKS BERDASARKAN USER ======
+  async function fetchTasks(userId) {
     try {
       setLoading(true);
       const { data, error } = await supabase
         .from("tasks")
         .select("*")
+        .eq("user_id", userId)
         .order("deadline", { ascending: true });
 
       if (error) throw error;
@@ -95,6 +92,7 @@ export default function App() {
     setTimeout(() => setMessage(""), 3000);
   }
 
+  // ====== ADD TASK DENGAN USER_ID ======
   async function addTask() {
     if (!taskName.trim() || !deadline || !subject) {
       showMessage("⚠️ Lengkapi semua kolom dulu ya 😅", "error");
@@ -103,7 +101,13 @@ export default function App() {
 
     try {
       const { error } = await supabase.from("tasks").insert([
-        { name: taskName, deadline, completed: false, subject },
+        { 
+          name: taskName, 
+          deadline, 
+          completed: false, 
+          subject,
+          user_id: user.id  // ✅ TAMBAH USER_ID
+        },
       ]);
       if (error) throw error;
 
@@ -111,7 +115,7 @@ export default function App() {
       setDeadline("");
       setSubject("");
       showMessage("✅ Tugas berhasil ditambahkan!", "success");
-      fetchTasks();
+      fetchTasks(user.id);
     } catch (err) {
       console.error("❌ Add Error:", err.message);
       showMessage("Gagal menambah tugas.", "error");
@@ -151,51 +155,49 @@ export default function App() {
           deadline: editDeadline,
           subject: editSubject,
         })
-        .eq("id", editingId);
+        .eq("id", editingId)
+        .eq("user_id", user.id);  // ✅ PASTIKAN MILIK USER INI
 
       if (error) throw error;
 
       showMessage("✅ Tugas berhasil diperbarui!", "success");
       closeEditModal();
-      fetchTasks();
+      fetchTasks(user.id);
     } catch (err) {
       console.error("❌ Update Error:", err.message);
       showMessage("Gagal memperbarui tugas.", "error");
     }
   }
 
+  // ====== TOGGLE TASK ======
   async function toggleTask(id, completed) {
     try {
       const { error } = await supabase
         .from("tasks")
         .update({ completed: !completed })
-        .eq("id", id);
+        .eq("id", id)
+        .eq("user_id", user.id);  // ✅ PASTIKAN MILIK USER INI
       if (error) throw error;
-      fetchTasks();
+      fetchTasks(user.id);
     } catch (err) {
       console.error("❌ Toggle Error:", err.message);
     }
   }
 
+  // ====== DELETE TASK ======
   async function deleteTask(id) {
     try {
-      const { error } = await supabase.from("tasks").delete().eq("id", id);
+      const { error } = await supabase
+        .from("tasks")
+        .delete()
+        .eq("id", id)
+        .eq("user_id", user.id);  // ✅ PASTIKAN MILIK USER INI
       if (error) throw error;
-      fetchTasks();
+      fetchTasks(user.id);
       showMessage("✅ Tugas dihapus!", "success");
     } catch (err) {
       console.error("❌ Delete Error:", err.message);
     }
-  }
-
-  function dateHasTasks(date) {
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, "0");
-    const day = String(date.getDate()).padStart(2, "0");
-    const dateString = `${year}-${month}-${day}`;
-
-    // Hanya tampilkan penanda jika ada tugas yang BELUM SELESAI
-    return tasks.some((task) => task.deadline === dateString && !task.completed);
   }
 
   function handleLogout() {
@@ -209,7 +211,7 @@ export default function App() {
   function handleLoginSuccess(userData) {
     setUser(userData);
     setIsLoggedIn(true);
-    fetchTasks();
+    fetchTasks(userData.id);  // ✅ FETCH TASKS DENGAN USER_ID
   }
 
   // ====== TOGGLE EXPAND/COLLAPSE ======
@@ -251,7 +253,23 @@ export default function App() {
       {/* ====== NAVBAR ====== */}
       <nav className="navbar">
         <div className="navbar-content">
-          <h2 className="navbar-title">🧠 Task Tracker</h2>
+          <div className="navbar-left">
+            <h2 className="navbar-title">🧠 Task Tracker</h2>
+            <div className="navbar-menu">
+              <button
+                className={`nav-link ${currentPage === "tasks" ? "active" : ""}`}
+                onClick={() => setCurrentPage("tasks")}
+              >
+                📋 Tugas
+              </button>
+              <button
+                className={`nav-link ${currentPage === "schedule" ? "active" : ""}`}
+                onClick={() => setCurrentPage("schedule")}
+              >
+                📚 Jadwal Kuliah
+              </button>
+            </div>
+          </div>
           <div className="navbar-user">
             <span className="user-info">👤 {user?.username}</span>
             <button onClick={handleLogout} className="logout-btn">
@@ -261,193 +279,143 @@ export default function App() {
         </div>
       </nav>
 
-      {/* ====== BAGIAN ATAS - FORM ====== */}
-      <div className="top-section">
-        <div className="container-form">
-          <h1>📝 Tambah Tugas</h1>
+      {/* ====== HALAMAN TUGAS ====== */}
+      {currentPage === "tasks" && (
+        <>
+          {/* ====== BAGIAN ATAS - FORM ====== */}
+          <div className="top-section">
+            <div className="container-form">
+              <h1>📝 Tambah Tugas</h1>
 
-          <div className="form-wrapper">
-            <div className="task-form">
-              <input
-                type="text"
-                placeholder="✏️ Nama tugas"
-                value={taskName}
-                onChange={(e) => setTaskName(e.target.value)}
-                onKeyPress={(e) => e.key === "Enter" && addTask()}
-              />
+              <div className="form-wrapper">
+                <div className="task-form">
+                  <input
+                    type="text"
+                    placeholder="✏️ Nama tugas"
+                    value={taskName}
+                    onChange={(e) => setTaskName(e.target.value)}
+                    onKeyPress={(e) => e.key === "Enter" && addTask()}
+                  />
 
-              <select
-                value={subject}
-                onChange={(e) => setSubject(e.target.value)}
-                className="subject-select"
-              >
-                <option value="">📚 Pilih Mata Kuliah</option>
-                {subjects.map((subj) => (
-                  <option key={subj.name} value={subj.name} style={{ borderLeft: `5px solid ${subj.color}` }}>
-                    {subj.name}
-                  </option>
-                ))}
-              </select>
-
-              <input
-                type="date"
-                value={deadline}
-                onChange={(e) => setDeadline(e.target.value)}
-              />
-
-              <button onClick={addTask}>+ Tambah</button>
-            </div>
-
-            {message && <p className={`message ${messageType}`}>{message}</p>}
-          </div>
-        </div>
-      </div>
-
-      {/* ====== DIVIDER ====== */}
-      <div className="divider"></div>
-
-      {/* ====== BAGIAN BAWAH - 2 KOLOM (LIST KIRI + CALENDAR KANAN) ====== */}
-      <div className="bottom-section">
-        {/* ====== KOLOM KIRI - LIST TUGAS ====== */}
-        <div className="container-list">
-          {loading ? (
-            <p className="empty">⏳ Memuat tugas...</p>
-          ) : tasks.length === 0 ? (
-            <p className="empty">📭 Belum ada tugas</p>
-          ) : (
-            <>
-              {/* Tampilkan tugas pada tanggal yang dipilih */}
-              {tasksOnSelectedDate.length > 0 && (
-                <div className="selected-date-tasks">
-                  <h2 className="selected-date-title">
-                    ✨ Tugas Terpilih ({tasksOnSelectedDate.length})
-                  </h2>
-                  <ul className="task-list">
-                    {tasksOnSelectedDate.map((t) => (
-                      <li key={t.id} className={t.completed ? "completed" : ""}>
-                        <div className="task-info">
-                          <strong>{t.name}</strong>
-                          <div className="task-meta">
-                            <span className="badge subject-badge">
-                              📚 {t.subject}
-                            </span>
-                            <span className="badge deadline-badge">
-                              📅 {t.deadline}
-                            </span>
-                          </div>
-                        </div>
-                        <div className="task-buttons">
-                          <button
-                            className="edit-btn"
-                            onClick={() => openEditModal(t)}
-                            title="Edit tugas"
-                          >
-                            ✏️
-                          </button>
-                          <button
-                            className="done-btn"
-                            onClick={() => toggleTask(t.id, t.completed)}
-                            title={
-                              t.completed
-                                ? "Tandai belum selesai"
-                                : "Tandai selesai"
-                            }
-                          >
-                            {t.completed ? "↩️" : "✅"}
-                          </button>
-                          <button
-                            className="delete-btn"
-                            onClick={() => deleteTask(t.id)}
-                            title="Hapus tugas"
-                          >
-                            🗑️
-                          </button>
-                        </div>
-                      </li>
+                  <select
+                    value={subject}
+                    onChange={(e) => setSubject(e.target.value)}
+                    className="subject-select"
+                  >
+                    <option value="">📚 Pilih Mata Kuliah</option>
+                    {subjects.map((subj) => (
+                      <option key={subj.name} value={subj.name}>
+                        {subj.name}
+                      </option>
                     ))}
-                  </ul>
+                  </select>
+
+                  <input
+                    type="date"
+                    value={deadline}
+                    onChange={(e) => setDeadline(e.target.value)}
+                  />
+
+                  <button onClick={addTask}>+ Tambah</button>
                 </div>
-              )}
 
-              {/* Tampilkan semua tugas berdasarkan mata kuliah */}
-              <div className="subject-sections">
-                <h2 className="all-tasks-title">📋 Semua Tugas</h2>
-                {Object.keys(tasksBySubject).length === 0 ? (
-                  <p className="empty">Tidak ada tugas</p>
-                ) : (
-                  Object.keys(tasksBySubject).map((subjectName) => {
-                    const { pending, completed } = tasksBySubject[subjectName];
-                    const isExpanded = expandedSections[`${subjectName}_completed`];
-                    const displayedPending = pending.slice(0, 3);
-                    const hiddenPendingCount = pending.length - 3;
+                {message && <p className={`message ${messageType}`}>{message}</p>}
+              </div>
+            </div>
+          </div>
 
-                    return (
-                      <div key={subjectName} className="subject-section">
-                        <h3 className="subject-title">📚 {subjectName}</h3>
+          {/* ====== DIVIDER ====== */}
+          <div className="divider"></div>
 
-                        {/* ====== TASK BELUM SELESAI ====== */}
-                        {pending.length > 0 && (
-                          <div className="task-group">
-                            <div className="task-group-header">
-                              <span className="task-group-label">
-                                ⏳ Belum Selesai ({pending.length})
-                              </span>
+          {/* ====== BAGIAN BAWAH - 2 KOLOM (LIST KIRI + CALENDAR KANAN) ====== */}
+          <div className="bottom-section">
+            {/* ====== KOLOM KIRI - LIST TUGAS ====== */}
+            <div className="container-list">
+              {loading ? (
+                <p className="empty">⏳ Memuat tugas...</p>
+              ) : tasks.length === 0 ? (
+                <p className="empty">📭 Belum ada tugas</p>
+              ) : (
+                <>
+                  {/* Tampilkan tugas pada tanggal terpilih */}
+                  {tasksOnSelectedDate.length > 0 && (
+                    <div className="selected-date-tasks">
+                      <h2 className="selected-date-title">
+                        ✨ Tugas Terpilih ({tasksOnSelectedDate.length})
+                      </h2>
+                      <ul className="task-list">
+                        {tasksOnSelectedDate.map((t) => (
+                          <li key={t.id} className={t.completed ? "completed" : ""}>
+                            <div className="task-info">
+                              <strong>{t.name}</strong>
+                              <div className="task-meta">
+                                <span className="badge subject-badge">
+                                  📚 {t.subject}
+                                </span>
+                                <span className="badge deadline-badge">
+                                  📅 {t.deadline}
+                                </span>
+                              </div>
                             </div>
-                            <ul className="task-list">
-                              {displayedPending.map((t) => (
-                                <li key={t.id} className="pending">
-                                  <div className="task-info">
-                                    <strong>{t.name}</strong>
-                                    <span className="badge deadline-badge">
-                                      📅 {t.deadline}
-                                    </span>
-                                  </div>
-                                  <div className="task-buttons">
-                                    <button
-                                      className="edit-btn"
-                                      onClick={() => openEditModal(t)}
-                                      title="Edit tugas"
-                                    >
-                                      ✏️
-                                    </button>
-                                    <button
-                                      className="done-btn"
-                                      onClick={() =>
-                                        toggleTask(t.id, t.completed)
-                                      }
-                                      title="Tandai selesai"
-                                    >
-                                      ✅
-                                    </button>
-                                    <button
-                                      className="delete-btn"
-                                      onClick={() => deleteTask(t.id)}
-                                      title="Hapus tugas"
-                                    >
-                                      🗑️
-                                    </button>
-                                  </div>
-                                </li>
-                              ))}
-                            </ul>
-
-                            {/* ====== SHOW MORE BUTTON ====== */}
-                            {hiddenPendingCount > 0 && (
+                            <div className="task-buttons">
                               <button
-                                className="show-more-btn"
-                                onClick={() =>
-                                  toggleSection(`${subjectName}_pending`)
+                                className="edit-btn"
+                                onClick={() => openEditModal(t)}
+                                title="Edit tugas"
+                              >
+                                ✏️
+                              </button>
+                              <button
+                                className="done-btn"
+                                onClick={() => toggleTask(t.id, t.completed)}
+                                title={
+                                  t.completed
+                                    ? "Tandai belum selesai"
+                                    : "Tandai selesai"
                                 }
                               >
-                                👇 Tampilkan {hiddenPendingCount} tugas lagi
+                                {t.completed ? "↩️" : "✅"}
                               </button>
-                            )}
+                              <button
+                                className="delete-btn"
+                                onClick={() => deleteTask(t.id)}
+                                title="Hapus tugas"
+                              >
+                                🗑️
+                              </button>
+                            </div>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
 
-                            {/* ====== EXPANDED PENDING TASKS ====== */}
-                            {expandedSections[`${subjectName}_pending`] && (
-                              <>
+                  {/* Tampilkan semua tugas berdasarkan mata kuliah */}
+                  <div className="subject-sections">
+                    <h2 className="all-tasks-title">📋 Semua Tugas</h2>
+                    {Object.keys(tasksBySubject).length === 0 ? (
+                      <p className="empty">Tidak ada tugas</p>
+                    ) : (
+                      Object.keys(tasksBySubject).map((subjectName) => {
+                        const { pending, completed } = tasksBySubject[subjectName];
+                        const isExpanded = expandedSections[`${subjectName}_completed`];
+                        const displayedPending = pending.slice(0, 3);
+                        const hiddenPendingCount = pending.length - 3;
+
+                        return (
+                          <div key={subjectName} className="subject-section">
+                            <h3 className="subject-title">📚 {subjectName}</h3>
+
+                            {/* ====== TASK BELUM SELESAI ====== */}
+                            {pending.length > 0 && (
+                              <div className="task-group">
+                                <div className="task-group-header">
+                                  <span className="task-group-label">
+                                    ⏳ Belum Selesai ({pending.length})
+                                  </span>
+                                </div>
                                 <ul className="task-list">
-                                  {pending.slice(3).map((t) => (
+                                  {displayedPending.map((t) => (
                                     <li key={t.id} className="pending">
                                       <div className="task-info">
                                         <strong>{t.name}</strong>
@@ -483,199 +451,270 @@ export default function App() {
                                     </li>
                                   ))}
                                 </ul>
-                                <button
-                                  className="show-less-btn"
-                                  onClick={() =>
-                                    toggleSection(`${subjectName}_pending`)
-                                  }
-                                >
-                                  👆 Tutup
-                                </button>
-                              </>
+
+                                {/* ====== SHOW MORE BUTTON ====== */}
+                                {hiddenPendingCount > 0 && (
+                                  <button
+                                    className="show-more-btn"
+                                    onClick={() =>
+                                      toggleSection(`${subjectName}_pending`)
+                                    }
+                                  >
+                                    👇 Tampilkan {hiddenPendingCount} tugas lagi
+                                  </button>
+                                )}
+
+                                {/* ====== EXPANDED PENDING TASKS ====== */}
+                                {expandedSections[`${subjectName}_pending`] && (
+                                  <>
+                                    <ul className="task-list">
+                                      {pending.slice(3).map((t) => (
+                                        <li key={t.id} className="pending">
+                                          <div className="task-info">
+                                            <strong>{t.name}</strong>
+                                            <span className="badge deadline-badge">
+                                              📅 {t.deadline}
+                                            </span>
+                                          </div>
+                                          <div className="task-buttons">
+                                            <button
+                                              className="edit-btn"
+                                              onClick={() => openEditModal(t)}
+                                              title="Edit tugas"
+                                            >
+                                              ✏️
+                                            </button>
+                                            <button
+                                              className="done-btn"
+                                              onClick={() =>
+                                                toggleTask(t.id, t.completed)
+                                              }
+                                              title="Tandai selesai"
+                                            >
+                                              ✅
+                                            </button>
+                                            <button
+                                              className="delete-btn"
+                                              onClick={() => deleteTask(t.id)}
+                                              title="Hapus tugas"
+                                            >
+                                              🗑️
+                                            </button>
+                                          </div>
+                                        </li>
+                                      ))}
+                                    </ul>
+                                    <button
+                                      className="show-less-btn"
+                                      onClick={() =>
+                                        toggleSection(`${subjectName}_pending`)
+                                      }
+                                    >
+                                      👆 Tutup
+                                    </button>
+                                  </>
+                                )}
+                              </div>
+                            )}
+
+                            {/* ====== TASK SELESAI ====== */}
+                            {completed.length > 0 && (
+                              <div className="task-group">
+                                <div className="task-group-header">
+                                  <span className="task-group-label">
+                                    ✅ Selesai ({completed.length})
+                                  </span>
+                                </div>
+
+                                {/* ====== TOGGLE COMPLETED TASKS ====== */}
+                                {!isExpanded && (
+                                  <button
+                                    className="show-more-btn completed"
+                                    onClick={() =>
+                                      toggleSection(`${subjectName}_completed`)
+                                    }
+                                  >
+                                    👇 Tampilkan {completed.length} tugas selesai
+                                  </button>
+                                )}
+
+                                {/* ====== EXPANDED COMPLETED TASKS ====== */}
+                                {isExpanded && (
+                                  <>
+                                    <ul className="task-list">
+                                      {completed.map((t) => (
+                                        <li key={t.id} className="completed">
+                                          <div className="task-info">
+                                            <strong>{t.name}</strong>
+                                            <span className="badge deadline-badge">
+                                              📅 {t.deadline}
+                                            </span>
+                                          </div>
+                                          <div className="task-buttons">
+                                            <button
+                                              className="edit-btn"
+                                              onClick={() => openEditModal(t)}
+                                              title="Edit tugas"
+                                            >
+                                              ✏️
+                                            </button>
+                                            <button
+                                              className="done-btn"
+                                              onClick={() =>
+                                                toggleTask(t.id, t.completed)
+                                              }
+                                              title="Tandai belum selesai"
+                                            >
+                                              ↩️
+                                            </button>
+                                            <button
+                                              className="delete-btn"
+                                              onClick={() => deleteTask(t.id)}
+                                              title="Hapus tugas"
+                                            >
+                                              🗑️
+                                            </button>
+                                          </div>
+                                        </li>
+                                      ))}
+                                    </ul>
+                                    <button
+                                      className="show-less-btn"
+                                      onClick={() =>
+                                        toggleSection(`${subjectName}_completed`)
+                                      }
+                                    >
+                                      👆 Tutup
+                                    </button>
+                                  </>
+                                )}
+                              </div>
                             )}
                           </div>
-                        )}
-
-                        {/* ====== TASK SELESAI ====== */}
-                        {completed.length > 0 && (
-                          <div className="task-group">
-                            <div className="task-group-header">
-                              <span className="task-group-label">
-                                ✅ Selesai ({completed.length})
-                              </span>
-                            </div>
-
-                            {/* ====== TOGGLE COMPLETED TASKS ====== */}
-                            {!isExpanded && (
-                              <button
-                                className="show-more-btn completed"
-                                onClick={() =>
-                                  toggleSection(`${subjectName}_completed`)
-                                }
-                              >
-                                👇 Tampilkan {completed.length} tugas selesai
-                              </button>
-                            )}
-
-                            {/* ====== EXPANDED COMPLETED TASKS ====== */}
-                            {isExpanded && (
-                              <>
-                                <ul className="task-list">
-                                  {completed.map((t) => (
-                                    <li key={t.id} className="completed">
-                                      <div className="task-info">
-                                        <strong>{t.name}</strong>
-                                        <span className="badge deadline-badge">
-                                          📅 {t.deadline}
-                                        </span>
-                                      </div>
-                                      <div className="task-buttons">
-                                        <button
-                                          className="edit-btn"
-                                          onClick={() => openEditModal(t)}
-                                          title="Edit tugas"
-                                        >
-                                          ✏️
-                                        </button>
-                                        <button
-                                          className="done-btn"
-                                          onClick={() =>
-                                            toggleTask(t.id, t.completed)
-                                          }
-                                          title="Tandai belum selesai"
-                                        >
-                                          ↩️
-                                        </button>
-                                        <button
-                                          className="delete-btn"
-                                          onClick={() => deleteTask(t.id)}
-                                          title="Hapus tugas"
-                                        >
-                                          🗑️
-                                        </button>
-                                      </div>
-                                    </li>
-                                  ))}
-                                </ul>
-                                <button
-                                  className="show-less-btn"
-                                  onClick={() =>
-                                    toggleSection(`${subjectName}_completed`)
-                                  }
-                                >
-                                  👆 Tutup
-                                </button>
-                              </>
-                            )}
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })
-                )}
-              </div>
-            </>
-          )}
-        </div>
-
-        {/* ====== KOLOM KANAN - CALENDAR ====== */}
-        <div className="calendar-section">
-          <div className="calendar-wrapper">
-            <h3 className="calendar-title">📅 Pilih Tanggal</h3>
-            <div className="calendar-container">
-              <Calendar
-                onChange={setSelectedDate}
-                value={selectedDate}
-                tileClassName={({ date }) => {
-                  const year = date.getFullYear();
-                  const month = String(date.getMonth() + 1).padStart(2, "0");
-                  const day = String(date.getDate()).padStart(2, "0");
-                  const dateString = `${year}-${month}-${day}`;
-
-                  // Cari tugas yang belum selesai di tanggal ini
-                  const incompleteTask = tasks.find(
-                    (task) => task.deadline === dateString && !task.completed
-                  );
-
-                  if (incompleteTask) {
-                    return `calendar-date-with-task ${incompleteTask.subject.toLowerCase().replace(/\s+/g, "-")}`;
-                  }
-                  return null;
-                }}
-                className="custom-calendar"
-                minDetail="month"
-              />
+                        );
+                      })
+                    )}
+                  </div>
+                </>
+              )}
             </div>
-            <div className="selected-date-info">
-              <p className="date-display">{formattedDate}</p>
-              <p className="task-count">
-                {tasksOnSelectedDate.length > 0
-                  ? `${tasksOnSelectedDate.length} tugas pada hari ini`
-                  : "Tidak ada tugas"}
-              </p>
+
+            {/* ====== KOLOM KANAN - CALENDAR ====== */}
+            <div className="calendar-section">
+              <div className="calendar-wrapper">
+                <h3 className="calendar-title">📅 Pilih Tanggal</h3>
+                <div className="calendar-container">
+                  <Calendar
+                    onChange={setSelectedDate}
+                    value={selectedDate}
+                    tileClassName={({ date }) => {
+                      const year = date.getFullYear();
+                      const month = String(date.getMonth() + 1).padStart(2, "0");
+                      const day = String(date.getDate()).padStart(2, "0");
+                      const dateString = `${year}-${month}-${day}`;
+
+                      const incompleteTask = tasks.find(
+                        (task) => task.deadline === dateString && !task.completed
+                      );
+
+                      if (incompleteTask) {
+                        return `calendar-date-with-task ${incompleteTask.subject.toLowerCase().replace(/\s+/g, "-")}`;
+                      }
+                      return null;
+                    }}
+                    className="custom-calendar"
+                    minDetail="month"
+                  />
+                </div>
+                <div className="selected-date-info">
+                  <p className="date-display">{formattedDate}</p>
+                  <p className="task-count">
+                    {tasksOnSelectedDate.length > 0
+                      ? `${tasksOnSelectedDate.length} tugas pada hari ini`
+                      : "Tidak ada tugas"}
+                  </p>
+                </div>
+              </div>
             </div>
           </div>
-        </div>
-      </div>
 
-      {/* ====== EDIT MODAL ====== */}
-      {showEditModal && (
-        <div className="modal-overlay" onClick={closeEditModal}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header">
-              <h2>✏️ Edit Tugas</h2>
-              <button
-                className="modal-close"
-                onClick={closeEditModal}
-                title="Tutup"
-              >
-                ✕
-              </button>
+          {/* ====== EDIT MODAL ====== */}
+          {showEditModal && (
+            <div className="modal-overlay" onClick={closeEditModal}>
+              <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+                <div className="modal-header">
+                  <h2>✏️ Edit Tugas</h2>
+                  <button
+                    className="modal-close"
+                    onClick={closeEditModal}
+                    title="Tutup"
+                  >
+                    ✕
+                  </button>
+                </div>
+
+                <div className="modal-body">
+                  <div className="form-group">
+                    <label>📝 Nama Tugas</label>
+                    <input
+                      type="text"
+                      value={editName}
+                      onChange={(e) => setEditName(e.target.value)}
+                      placeholder="Masukkan nama tugas"
+                    />
+                  </div>
+
+                  <div className="form-group">
+                    <label>📚 Mata Kuliah</label>
+                    <select
+                      value={editSubject}
+                      onChange={(e) => setEditSubject(e.target.value)}
+                    >
+                      <option value="">Pilih Mata Kuliah</option>
+                      {subjects.map((subj) => (
+                        <option key={subj.name} value={subj.name}>
+                          {subj.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div className="form-group">
+                    <label>📅 Deadline</label>
+                    <input
+                      type="date"
+                      value={editDeadline}
+                      onChange={(e) => setEditDeadline(e.target.value)}
+                    />
+                  </div>
+                </div>
+
+                <div className="modal-footer">
+                  <button className="btn-cancel" onClick={closeEditModal}>
+                    Batal
+                  </button>
+                  <button className="btn-save" onClick={handleUpdateTask}>
+                    💾 Simpan Perubahan
+                  </button>
+                </div>
+              </div>
             </div>
+          )}
+        </>
+      )}
 
-            <div className="modal-body">
-              <div className="form-group">
-                <label>📝 Nama Tugas</label>
-                <input
-                  type="text"
-                  value={editName}
-                  onChange={(e) => setEditName(e.target.value)}
-                  placeholder="Masukkan nama tugas"
-                />
-              </div>
-
-              <div className="form-group">
-                <label>📚 Mata Kuliah</label>
-                <select
-                  value={editSubject}
-                  onChange={(e) => setEditSubject(e.target.value)}
-                >
-                  <option value="">Pilih Mata Kuliah</option>
-                  {subjects.map((subj) => (
-                    <option key={subj.name} value={subj.name}>
-                      {subj.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="form-group">
-                <label>📅 Deadline</label>
-                <input
-                  type="date"
-                  value={editDeadline}
-                  onChange={(e) => setEditDeadline(e.target.value)}
-                />
-              </div>
-            </div>
-
-            <div className="modal-footer">
-              <button className="btn-cancel" onClick={closeEditModal}>
-                Batal
-              </button>
-              <button className="btn-save" onClick={handleUpdateTask}>
-                💾 Simpan Perubahan
-              </button>
+      {/* ====== HALAMAN JADWAL KULIAH ====== */}
+      {currentPage === "schedule" && (
+        <div className="schedule-page">
+          <div className="schedule-container">
+            <h1>📚 Jadwal Kuliah Bersama</h1>
+            <p className="schedule-subtitle">Jadwal kuliah untuk semua mahasiswa</p>
+            <div className="schedule-wrapper">
+              <iframe
+                src="https://calendar.google.com/calendar/embed?src=gemparnugroho725%40gmail.com&ctz=Asia%2FSeoul"
+                className="schedule-iframe"
+                title="Jadwal Kuliah"
+              ></iframe>
             </div>
           </div>
         </div>
