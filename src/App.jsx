@@ -10,24 +10,56 @@ export default function App() {
   const [user, setUser] = useState(null);
   const [tasks, setTasks] = useState([]);
   const [taskName, setTaskName] = useState("");
-  const [deadline, setDeadline] = useState("");
+  const [deadline, setDeadline] = useState(getTodayDate());
   const [subject, setSubject] = useState("");
+  const [priority, setPriority] = useState("");
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState("");
   const [messageType, setMessageType] = useState("");
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [tasksOnSelectedDate, setTasksOnSelectedDate] = useState([]);
   const [currentPage, setCurrentPage] = useState("tasks");
+  const [darkMode, setDarkMode] = useState(() => {
+    return localStorage.getItem("darkMode") === "true";
+  });
+  
+  // ====== STATE UNTUK KEGIATAN ======
+  const [activities, setActivities] = useState([]);
+  const [activityName, setActivityName] = useState("");
+  const [activityDeadline, setActivityDeadline] = useState(getTodayDate());
+  const [activityType, setActivityType] = useState("Lainnya");
+  const [activityPriority, setActivityPriority] = useState("medium");
+  const [activitiesOnSelectedDate, setActivitiesOnSelectedDate] = useState([]);
   
   // ====== STATE UNTUK EDIT ======
   const [editingId, setEditingId] = useState(null);
   const [editName, setEditName] = useState("");
   const [editDeadline, setEditDeadline] = useState("");
   const [editSubject, setEditSubject] = useState("");
+  const [editPriority, setEditPriority] = useState("");
   const [showEditModal, setShowEditModal] = useState(false);
+  const [isUpdatingTask, setIsUpdatingTask] = useState(false);
+
+  // ====== STATE UNTUK EDIT KEGIATAN ======
+  const [editingActivityId, setEditingActivityId] = useState(null);
+  const [editActivityName, setEditActivityName] = useState("");
+  const [editActivityDeadline, setEditActivityDeadline] = useState("");
+  const [editActivityType, setEditActivityType] = useState("");
+  const [editActivityPriority, setEditActivityPriority] = useState("");
+  const [showEditActivityModal, setShowEditActivityModal] = useState(false);
+  const [isUpdatingActivity, setIsUpdatingActivity] = useState(false);
 
   // ====== STATE UNTUK EXPAND/COLLAPSE ======
   const [expandedSections, setExpandedSections] = useState({});
+
+  // ====== HELPER FUNCTION - GET TODAY DATE ======
+  function getTodayDate() {
+    const today = new Date();
+    const year = today.getFullYear();
+    const month = String(today.getMonth() + 1).padStart(2, "0");
+    const day = String(today.getDate()).padStart(2, "0");
+    return `${year}-${month}-${day}`;
+  }
 
   // ====== DAFTAR MATA KULIAH DENGAN WARNA ======
   const subjects = [
@@ -40,6 +72,22 @@ export default function App() {
     { name: "Hukum dan Etika Profesi", color: "#E17055", bgColor: "#FFECEB" },
   ];
 
+  // ====== PRIORITY LEVELS ======
+  const priorityLevels = [
+    { value: "low", label: "Rendah", color: "#00B894", icon: "🟢" },
+    { value: "medium", label: "Sedang", color: "#FFD93D", icon: "🟡" },
+    { value: "high", label: "Tinggi", color: "#FF6B6B", icon: "🔴" },
+  ];
+
+  // ====== JENIS KEGIATAN ======
+  const activityTypes = [
+    { name: "Lomba", color: "#FF6B6B", bgColor: "#FFE8E8", icon: "🏆" },
+    { name: "IK", color: "#4ECDC4", bgColor: "#E0F7F6", icon: "🎓" },
+    { name: "POLTEK", color: "#6C5CE7", bgColor: "#F3E9FF", icon: "🏫" },
+    { name: "Luar", color: "#FFD93D", bgColor: "#FFF9E6", icon: "🌍" },
+    { name: "Lainnya", color: "#A29BFE", bgColor: "#F4F1FF", icon: "📝" },
+  ];
+
   // ====== CHECK LOGIN STATUS ======
   useEffect(() => {
     const savedUser = localStorage.getItem("user");
@@ -47,6 +95,7 @@ export default function App() {
       setUser(JSON.parse(savedUser));
       setIsLoggedIn(true);
       fetchTasks(JSON.parse(savedUser).id);
+      fetchActivities(JSON.parse(savedUser).id);
     } else {
       setLoading(false);
     }
@@ -54,14 +103,19 @@ export default function App() {
 
   useEffect(() => {
     updateTasksOnSelectedDate();
-  }, [tasks, selectedDate]);
+    updateActivitiesOnSelectedDate();
+  }, [tasks, activities, selectedDate]);
+
+  useEffect(() => {
+    localStorage.setItem("darkMode", darkMode);
+  }, [darkMode]);
 
   // ====== FETCH TASKS BERDASARKAN USER ======
   async function fetchTasks(userId) {
     try {
       setLoading(true);
       const { data, error } = await supabase
-        .from("tasks")
+        .from("tugas")
         .select("*")
         .eq("user_id", userId)
         .order("deadline", { ascending: true });
@@ -76,6 +130,23 @@ export default function App() {
     }
   }
 
+  // ====== FETCH ACTIVITIES BERDASARKAN USER ======
+  async function fetchActivities(userId) {
+    try {
+      const { data, error } = await supabase
+        .from("activities")
+        .select("*")
+        .eq("user_id", userId)
+        .order("deadline", { ascending: true });
+
+      if (error) throw error;
+      setActivities(data || []);
+    } catch (err) {
+      console.error("❌ Error fetching activities:", err.message);
+      showMessage("Gagal memuat data kegiatan ❗", "error");
+    }
+  }
+
   function updateTasksOnSelectedDate() {
     const year = selectedDate.getFullYear();
     const month = String(selectedDate.getMonth() + 1).padStart(2, "0");
@@ -86,39 +157,115 @@ export default function App() {
     setTasksOnSelectedDate(filtered);
   }
 
+  function updateActivitiesOnSelectedDate() {
+    const year = selectedDate.getFullYear();
+    const month = String(selectedDate.getMonth() + 1).padStart(2, "0");
+    const day = String(selectedDate.getDate()).padStart(2, "0");
+    const dateString = `${year}-${month}-${day}`;
+
+    const filtered = activities.filter((activity) => activity.deadline === dateString);
+    setActivitiesOnSelectedDate(filtered);
+  }
+
   function showMessage(text, type = "success") {
     setMessage(text);
     setMessageType(type);
     setTimeout(() => setMessage(""), 3000);
   }
 
+  // ====== FETCH ACTIVITIES BERDASARKAN USER ======
+  async function fetchActivities(userId) {
+    try {
+      const { data, error } = await supabase
+        .from("kegiatan")
+        .select("*")
+        .eq("user_id", userId)
+        .order("deadline", { ascending: true });
+
+      if (error) throw error;
+      setActivities(data || []);
+    } catch (err) {
+      console.error("❌ Error fetching activities:", err.message);
+      showMessage("Gagal memuat data kegiatan ❗", "error");
+    }
+  }
+
   // ====== ADD TASK DENGAN USER_ID ======
   async function addTask() {
-    if (!taskName.trim() || !deadline || !subject) {
+    if (!taskName.trim() || !deadline || !subject || !priority) {
       showMessage("⚠️ Lengkapi semua kolom dulu ya 😅", "error");
       return;
     }
 
     try {
-      const { error } = await supabase.from("tasks").insert([
+      const { error } = await supabase.from("tugas").insert([
         { 
           name: taskName, 
           deadline, 
           completed: false, 
           subject,
-          user_id: user.id  // ✅ TAMBAH USER_ID
+          priority: priority,
+          user_id: user.id
         },
       ]);
       if (error) throw error;
 
       setTaskName("");
-      setDeadline("");
+      setDeadline(getTodayDate());
       setSubject("");
+      setPriority("");
       showMessage("✅ Tugas berhasil ditambahkan!", "success");
       fetchTasks(user.id);
     } catch (err) {
       console.error("❌ Add Error:", err.message);
       showMessage("Gagal menambah tugas.", "error");
+    }
+  }
+
+  // ====== ADD ACTIVITY DENGAN USER_ID ======
+  async function addActivity() {
+    if (!activityName.trim() || !activityDeadline) {
+      showMessage("⚠️ Nama kegiatan dan tanggal harus diisi!", "error");
+      return;
+    }
+
+    // Pastikan ada nilai default jika kosong
+    const finalActivityType = activityType || "Lainnya";
+    const finalActivityPriority = activityPriority || "medium";
+
+    try {
+      // Pastikan user.id adalah integer
+      const userId = parseInt(user.id);
+      console.log("🔍 Sending to database:", {
+        name: activityName,
+        deadline: activityDeadline,
+        activity_type: finalActivityType,
+        priority: finalActivityPriority,
+        user_id: userId,
+        user_id_type: typeof userId
+      });
+
+      const { error } = await supabase.from("kegiatan").insert([
+        { 
+          name: activityName, 
+          deadline: activityDeadline, 
+          completed: false, 
+          activity_type: finalActivityType,
+          priority: finalActivityPriority,
+          user_id: userId
+        },
+      ]);
+      if (error) throw error;
+
+      setActivityName("");
+      setActivityDeadline(getTodayDate());
+      setActivityType("Lainnya");
+      setActivityPriority("medium");
+      showMessage("✅ Kegiatan berhasil ditambahkan!", "success");
+      fetchActivities(user.id);
+    } catch (err) {
+      console.error("❌ Add Activity Error:", err.message);
+      showMessage(`Gagal menambah kegiatan: ${err.message}`, "error");
     }
   }
 
@@ -128,6 +275,7 @@ export default function App() {
     setEditName(task.name);
     setEditDeadline(task.deadline);
     setEditSubject(task.subject);
+    setEditPriority(task.priority || "");
     setShowEditModal(true);
   }
 
@@ -138,25 +286,36 @@ export default function App() {
     setEditName("");
     setEditDeadline("");
     setEditSubject("");
+    setEditPriority("");
   }
 
   // ====== UPDATE TASK ======
   async function handleUpdateTask() {
-    if (!editName.trim() || !editDeadline || !editSubject) {
+    console.log("🔍 Edit Task Debug:", {
+      editName: editName.trim(),
+      editDeadline,
+      editSubject,
+      editPriority,
+      editingId
+    });
+
+    if (!editName.trim() || !editDeadline || !editSubject || !editPriority) {
       showMessage("⚠️ Lengkapi semua kolom dulu ya 😅", "error");
       return;
     }
 
+    setIsUpdatingTask(true);
     try {
       const { error } = await supabase
-        .from("tasks")
+        .from("tugas")
         .update({
           name: editName,
           deadline: editDeadline,
           subject: editSubject,
+          priority: editPriority,
         })
         .eq("id", editingId)
-        .eq("user_id", user.id);  // ✅ PASTIKAN MILIK USER INI
+        .eq("user_id", user.id);
 
       if (error) throw error;
 
@@ -166,6 +325,8 @@ export default function App() {
     } catch (err) {
       console.error("❌ Update Error:", err.message);
       showMessage("Gagal memperbarui tugas.", "error");
+    } finally {
+      setIsUpdatingTask(false);
     }
   }
 
@@ -173,7 +334,7 @@ export default function App() {
   async function toggleTask(id, completed) {
     try {
       const { error } = await supabase
-        .from("tasks")
+        .from("tugas")
         .update({ completed: !completed })
         .eq("id", id)
         .eq("user_id", user.id);  // ✅ PASTIKAN MILIK USER INI
@@ -188,7 +349,7 @@ export default function App() {
   async function deleteTask(id) {
     try {
       const { error } = await supabase
-        .from("tasks")
+        .from("tugas")
         .delete()
         .eq("id", id)
         .eq("user_id", user.id);  // ✅ PASTIKAN MILIK USER INI
@@ -200,11 +361,104 @@ export default function App() {
     }
   }
 
+  // ====== OPEN EDIT ACTIVITY MODAL ======
+  function openEditActivityModal(activity) {
+    setEditingActivityId(activity.id);
+    setEditActivityName(activity.name);
+    setEditActivityDeadline(activity.deadline);
+    setEditActivityType(activity.activity_type || "Lainnya");
+    setEditActivityPriority(activity.priority || "");
+    setShowEditActivityModal(true);
+  }
+
+  // ====== CLOSE EDIT ACTIVITY MODAL ======
+  function closeEditActivityModal() {
+    setShowEditActivityModal(false);
+    setEditingActivityId(null);
+    setEditActivityName("");
+    setEditActivityDeadline("");
+    setEditActivityType("");
+    setEditActivityPriority("");
+  }
+
+  // ====== UPDATE ACTIVITY ======
+  async function handleUpdateActivity() {
+    console.log("🔍 Edit Activity Debug:", {
+      editActivityName: editActivityName.trim(),
+      editActivityDeadline,
+      editActivityType,
+      editActivityPriority,
+      editingActivityId
+    });
+
+    if (!editActivityName.trim() || !editActivityDeadline || !editActivityType || !editActivityPriority) {
+      showMessage("⚠️ Lengkapi semua kolom dulu ya 😅", "error");
+      return;
+    }
+
+    setIsUpdatingActivity(true);
+    try {
+      const { error } = await supabase
+        .from("kegiatan")
+        .update({
+          name: editActivityName,
+          deadline: editActivityDeadline,
+          activity_type: editActivityType,
+          priority: editActivityPriority,
+        })
+        .eq("id", editingActivityId)
+        .eq("user_id", user.id);
+
+      if (error) throw error;
+
+      showMessage("✅ Kegiatan berhasil diperbarui!", "success");
+      closeEditActivityModal();
+      fetchActivities(user.id);
+    } catch (err) {
+      console.error("❌ Update Activity Error:", err.message);
+      showMessage("Gagal memperbarui kegiatan.", "error");
+    } finally {
+      setIsUpdatingActivity(false);
+    }
+  }
+
+  // ====== TOGGLE ACTIVITY ======
+  async function toggleActivity(id, completed) {
+    try {
+      const { error } = await supabase
+        .from("kegiatan")
+        .update({ completed: !completed })
+        .eq("id", id)
+        .eq("user_id", user.id);
+      if (error) throw error;
+      fetchActivities(user.id);
+    } catch (err) {
+      console.error("❌ Toggle Activity Error:", err.message);
+    }
+  }
+
+  // ====== DELETE ACTIVITY ======
+  async function deleteActivity(id) {
+    try {
+      const { error } = await supabase
+        .from("kegiatan")
+        .delete()
+        .eq("id", id)
+        .eq("user_id", user.id);
+      if (error) throw error;
+      fetchActivities(user.id);
+      showMessage("✅ Kegiatan dihapus!", "success");
+    } catch (err) {
+      console.error("❌ Delete Activity Error:", err.message);
+    }
+  }
+
   function handleLogout() {
     localStorage.removeItem("user");
     setIsLoggedIn(false);
     setUser(null);
     setTasks([]);
+    setActivities([]);
     showMessage("✅ Logout berhasil!", "success");
   }
 
@@ -212,6 +466,7 @@ export default function App() {
     setUser(userData);
     setIsLoggedIn(true);
     fetchTasks(userData.id);  // ✅ FETCH TASKS DENGAN USER_ID
+    fetchActivities(userData.id);  // ✅ FETCH ACTIVITIES DENGAN USER_ID
   }
 
   // ====== TOGGLE EXPAND/COLLAPSE ======
@@ -235,6 +490,104 @@ export default function App() {
     return acc;
   }, {});
 
+  // ====== PISAHKAN ACTIVITY SELESAI & BELUM SELESAI ======
+  const activitiesByType = activities.reduce((acc, activity) => {
+    const activityType = activity.activity_type || "Lainnya";
+    if (!acc[activityType]) {
+      acc[activityType] = { pending: [], completed: [] };
+    }
+    if (activity.completed) {
+      acc[activityType].completed.push(activity);
+    } else {
+      acc[activityType].pending.push(activity);
+    }
+    return acc;
+  }, {});
+
+  // ====== HELPER FUNCTION - GET UNCOMPLETED SUBJECTS FOR DATE ======
+  function getUncompletedSubjectsForDate(date) {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const day = String(date.getDate()).padStart(2, "0");
+    const dateString = `${year}-${month}-${day}`;
+
+    const tasksOnDate = tasks.filter(
+      (task) => task.deadline === dateString && !task.completed
+    );
+    const uniqueSubjects = [...new Set(tasksOnDate.map((t) => t.subject))];
+    return uniqueSubjects;
+  }
+
+  // ====== HELPER FUNCTION - GET UNCOMPLETED ACTIVITIES FOR DATE ======
+  function getUncompletedActivitiesForDate(date) {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const day = String(date.getDate()).padStart(2, "0");
+    const dateString = `${year}-${month}-${day}`;
+
+    const activitiesOnDate = activities.filter(
+      (activity) => activity.deadline === dateString && !activity.completed
+    );
+    return activitiesOnDate;
+  }
+
+  // ====== UPDATE TILE CLASS NAME UNTUK CALENDAR ======
+  const getTileClassName = ({ date }) => {
+    const uncompletedSubjects = getUncompletedSubjectsForDate(date);
+    const uncompletedActivities = getUncompletedActivitiesForDate(date);
+    const hasTask = uncompletedSubjects.length > 0;
+    const hasActivity = uncompletedActivities.length > 0;
+    
+    let classes = [];
+    
+    // Tambahkan class untuk tugas (titik merah)
+    if (hasTask) {
+      classes.push("calendar-date-with-task");
+      classes.push(`task-count-${uncompletedSubjects.length}`);
+      
+      if (date.toDateString() === selectedDate.toDateString()) {
+        classes.push("calendar-date-with-task--active");
+      }
+      
+      if (date.toDateString() === new Date().toDateString()) {
+        classes.push("calendar-date-with-task--now");
+      }
+    }
+
+    // Tambahkan class untuk kegiatan (titik biru)
+    if (hasActivity) {
+      classes.push("calendar-date-with-activity");
+      classes.push(`activity-count-${uncompletedActivities.length}`);
+      
+      if (date.toDateString() === selectedDate.toDateString()) {
+        classes.push("calendar-date-with-activity--active");
+      }
+      
+      if (date.toDateString() === new Date().toDateString()) {
+        classes.push("calendar-date-with-activity--now");
+      }
+    }
+
+    return classes.join(" ");
+  };
+
+  // ====== GENERATE DATA ATTRIBUTES UNTUK CALENDAR TILES ======
+  const getTileDataAttributes = ({ date }) => {
+    const uncompletedSubjects = getUncompletedSubjectsForDate(date);
+    const uncompletedActivities = getUncompletedActivitiesForDate(date);
+    let attributes = {};
+    
+    uncompletedSubjects.forEach((subject, index) => {
+      attributes[`data-subject-${index}`] = subject;
+    });
+
+    uncompletedActivities.forEach((activity, index) => {
+      attributes[`data-activity-${index}`] = activity.activity_type || "Lainnya";
+    });
+
+    return attributes;
+  };
+
   const formattedDate = selectedDate.toLocaleDateString("id-ID", {
     weekday: "long",
     year: "numeric",
@@ -249,7 +602,7 @@ export default function App() {
 
   // ====== RENDER MAIN APP ======
   return (
-    <main className="page">
+    <main className={`page ${darkMode ? "dark-mode" : ""}`}>
       {/* ====== NAVBAR ====== */}
       <nav className="navbar">
         <div className="navbar-content">
@@ -263,6 +616,12 @@ export default function App() {
                 📋 Tugas
               </button>
               <button
+                className={`nav-link ${currentPage === "activities" ? "active" : ""}`}
+                onClick={() => setCurrentPage("activities")}
+              >
+                🎯 Kegiatan
+              </button>
+              <button
                 className={`nav-link ${currentPage === "schedule" ? "active" : ""}`}
                 onClick={() => setCurrentPage("schedule")}
               >
@@ -272,6 +631,13 @@ export default function App() {
           </div>
           <div className="navbar-user">
             <span className="user-info">👤 {user?.username}</span>
+            <button 
+              onClick={() => setDarkMode(!darkMode)} 
+              className="theme-toggle-btn"
+              title={darkMode ? "Light Mode" : "Dark Mode"}
+            >
+              {darkMode ? "☀️" : "🌙"}
+            </button>
             <button onClick={handleLogout} className="logout-btn">
               🚪 Logout
             </button>
@@ -316,6 +682,19 @@ export default function App() {
                     onChange={(e) => setDeadline(e.target.value)}
                   />
 
+                  <select
+                    value={priority}
+                    onChange={(e) => setPriority(e.target.value)}
+                    className="subject-select"
+                  >
+                    <option value="">⭐ Pilih Prioritas</option>
+                    {priorityLevels.map((level) => (
+                      <option key={level.value} value={level.value}>
+                        {level.icon} {level.label}
+                      </option>
+                    ))}
+                  </select>
+
                   <button onClick={addTask}>+ Tambah</button>
                 </div>
 
@@ -344,48 +723,54 @@ export default function App() {
                         ✨ Tugas Terpilih ({tasksOnSelectedDate.length})
                       </h2>
                       <ul className="task-list">
-                        {tasksOnSelectedDate.map((t) => (
-                          <li key={t.id} className={t.completed ? "completed" : ""}>
-                            <div className="task-info">
-                              <strong>{t.name}</strong>
-                              <div className="task-meta">
-                                <span className="badge subject-badge">
-                                  📚 {t.subject}
-                                </span>
-                                <span className="badge deadline-badge">
-                                  📅 {t.deadline}
-                                </span>
+                        {tasksOnSelectedDate.map((t) => {
+                          const priorityInfo = priorityLevels.find(p => p.value === (t.priority || "medium"));
+                          return (
+                            <li key={t.id} className={t.completed ? "completed" : ""}>
+                              <div className="task-info">
+                                <strong>{t.name}</strong>
+                                <div className="task-meta">
+                                  <span className={`badge priority-badge priority-${t.priority || "medium"}`}>
+                                    {priorityInfo?.icon} {priorityInfo?.label}
+                                  </span>
+                                  <span className="badge subject-badge">
+                                    📚 {t.subject}
+                                  </span>
+                                  <span className="badge deadline-badge">
+                                    📅 {t.deadline}
+                                  </span>
+                                </div>
                               </div>
-                            </div>
-                            <div className="task-buttons">
-                              <button
-                                className="edit-btn"
-                                onClick={() => openEditModal(t)}
-                                title="Edit tugas"
-                              >
-                                ✏️
-                              </button>
-                              <button
-                                className="done-btn"
-                                onClick={() => toggleTask(t.id, t.completed)}
-                                title={
-                                  t.completed
-                                    ? "Tandai belum selesai"
-                                    : "Tandai selesai"
-                                }
-                              >
-                                {t.completed ? "↩️" : "✅"}
-                              </button>
-                              <button
-                                className="delete-btn"
-                                onClick={() => deleteTask(t.id)}
-                                title="Hapus tugas"
-                              >
-                                🗑️
-                              </button>
-                            </div>
-                          </li>
-                        ))}
+                              <div className="task-buttons">
+                                <button
+                                  className="edit-btn"
+                                  onClick={() => openEditModal(t)}
+                                  title="Edit tugas"
+                                >
+                                  ✏️
+                                </button>
+                                <button
+                                  className="done-btn"
+                                  onClick={() => toggleTask(t.id, t.completed)}
+                                  title={
+                                    t.completed
+                                      ? "Tandai belum selesai"
+                                      : "Tandai selesai"
+                                  }
+                                >
+                                  {t.completed ? "↩️" : "✅"}
+                                </button>
+                                <button
+                                  className="delete-btn"
+                                  onClick={() => deleteTask(t.id)}
+                                  title="Hapus tugas"
+                                >
+                                  🗑️
+                                </button>
+                              </div>
+                            </li>
+                          );
+                        })}
                       </ul>
                     </div>
                   )}
@@ -415,41 +800,49 @@ export default function App() {
                                   </span>
                                 </div>
                                 <ul className="task-list">
-                                  {displayedPending.map((t) => (
-                                    <li key={t.id} className="pending">
-                                      <div className="task-info">
-                                        <strong>{t.name}</strong>
-                                        <span className="badge deadline-badge">
-                                          📅 {t.deadline}
-                                        </span>
-                                      </div>
-                                      <div className="task-buttons">
-                                        <button
-                                          className="edit-btn"
-                                          onClick={() => openEditModal(t)}
-                                          title="Edit tugas"
-                                        >
-                                          ✏️
-                                        </button>
-                                        <button
-                                          className="done-btn"
-                                          onClick={() =>
-                                            toggleTask(t.id, t.completed)
-                                          }
-                                          title="Tandai selesai"
-                                        >
-                                          ✅
-                                        </button>
-                                        <button
-                                          className="delete-btn"
-                                          onClick={() => deleteTask(t.id)}
-                                          title="Hapus tugas"
-                                        >
-                                          🗑️
-                                        </button>
-                                      </div>
-                                    </li>
-                                  ))}
+                                  {displayedPending.map((t) => {
+                                    const priorityInfo = priorityLevels.find(p => p.value === (t.priority || "medium"));
+                                    return (
+                                      <li key={t.id} className="pending">
+                                        <div className="task-info">
+                                          <strong>{t.name}</strong>
+                                          <div className="task-meta">
+                                            <span className={`badge priority-badge priority-${t.priority || "medium"}`}>
+                                              {priorityInfo?.icon} {priorityInfo?.label}
+                                            </span>
+                                            <span className="badge deadline-badge">
+                                              📅 {t.deadline}
+                                            </span>
+                                          </div>
+                                        </div>
+                                        <div className="task-buttons">
+                                          <button
+                                            className="edit-btn"
+                                            onClick={() => openEditModal(t)}
+                                            title="Edit tugas"
+                                          >
+                                            ✏️
+                                          </button>
+                                          <button
+                                            className="done-btn"
+                                            onClick={() =>
+                                              toggleTask(t.id, t.completed)
+                                            }
+                                            title="Tandai selesai"
+                                          >
+                                            ✅
+                                          </button>
+                                          <button
+                                            className="delete-btn"
+                                            onClick={() => deleteTask(t.id)}
+                                            title="Hapus tugas"
+                                          >
+                                            🗑️
+                                          </button>
+                                        </div>
+                                      </li>
+                                    );
+                                  })}
                                 </ul>
 
                                 {/* ====== SHOW MORE BUTTON ====== */}
@@ -468,41 +861,49 @@ export default function App() {
                                 {expandedSections[`${subjectName}_pending`] && (
                                   <>
                                     <ul className="task-list">
-                                      {pending.slice(3).map((t) => (
-                                        <li key={t.id} className="pending">
-                                          <div className="task-info">
-                                            <strong>{t.name}</strong>
-                                            <span className="badge deadline-badge">
-                                              📅 {t.deadline}
-                                            </span>
-                                          </div>
-                                          <div className="task-buttons">
-                                            <button
-                                              className="edit-btn"
-                                              onClick={() => openEditModal(t)}
-                                              title="Edit tugas"
-                                            >
-                                              ✏️
-                                            </button>
-                                            <button
-                                              className="done-btn"
-                                              onClick={() =>
-                                                toggleTask(t.id, t.completed)
-                                              }
-                                              title="Tandai selesai"
-                                            >
-                                              ✅
-                                            </button>
-                                            <button
-                                              className="delete-btn"
-                                              onClick={() => deleteTask(t.id)}
-                                              title="Hapus tugas"
-                                            >
-                                              🗑️
-                                            </button>
-                                          </div>
-                                        </li>
-                                      ))}
+                                      {pending.slice(3).map((t) => {
+                                        const priorityInfo = priorityLevels.find(p => p.value === (t.priority || "medium"));
+                                        return (
+                                          <li key={t.id} className="pending">
+                                            <div className="task-info">
+                                              <strong>{t.name}</strong>
+                                              <div className="task-meta">
+                                                <span className={`badge priority-badge priority-${t.priority || "medium"}`}>
+                                                  {priorityInfo?.icon} {priorityInfo?.label}
+                                                </span>
+                                                <span className="badge deadline-badge">
+                                                  📅 {t.deadline}
+                                                </span>
+                                              </div>
+                                            </div>
+                                            <div className="task-buttons">
+                                              <button
+                                                className="edit-btn"
+                                                onClick={() => openEditModal(t)}
+                                                title="Edit tugas"
+                                              >
+                                                ✏️
+                                              </button>
+                                              <button
+                                                className="done-btn"
+                                                onClick={() =>
+                                                  toggleTask(t.id, t.completed)
+                                                }
+                                                title="Tandai selesai"
+                                              >
+                                                ✅
+                                              </button>
+                                              <button
+                                                className="delete-btn"
+                                                onClick={() => deleteTask(t.id)}
+                                                title="Hapus tugas"
+                                              >
+                                                🗑️
+                                              </button>
+                                            </div>
+                                          </li>
+                                        );
+                                      })}
                                     </ul>
                                     <button
                                       className="show-less-btn"
@@ -542,41 +943,49 @@ export default function App() {
                                 {isExpanded && (
                                   <>
                                     <ul className="task-list">
-                                      {completed.map((t) => (
-                                        <li key={t.id} className="completed">
-                                          <div className="task-info">
-                                            <strong>{t.name}</strong>
-                                            <span className="badge deadline-badge">
-                                              📅 {t.deadline}
-                                            </span>
-                                          </div>
-                                          <div className="task-buttons">
-                                            <button
-                                              className="edit-btn"
-                                              onClick={() => openEditModal(t)}
-                                              title="Edit tugas"
-                                            >
-                                              ✏️
-                                            </button>
-                                            <button
-                                              className="done-btn"
-                                              onClick={() =>
-                                                toggleTask(t.id, t.completed)
-                                              }
-                                              title="Tandai belum selesai"
-                                            >
-                                              ↩️
-                                            </button>
-                                            <button
-                                              className="delete-btn"
-                                              onClick={() => deleteTask(t.id)}
-                                              title="Hapus tugas"
-                                            >
-                                              🗑️
-                                            </button>
-                                          </div>
-                                        </li>
-                                      ))}
+                                      {completed.map((t) => {
+                                        const priorityInfo = priorityLevels.find(p => p.value === (t.priority || "medium"));
+                                        return (
+                                          <li key={t.id} className="completed">
+                                            <div className="task-info">
+                                              <strong>{t.name}</strong>
+                                              <div className="task-meta">
+                                                <span className={`badge priority-badge priority-${t.priority || "medium"}`}>
+                                                  {priorityInfo?.icon} {priorityInfo?.label}
+                                                </span>
+                                                <span className="badge deadline-badge">
+                                                  📅 {t.deadline}
+                                                </span>
+                                              </div>
+                                            </div>
+                                            <div className="task-buttons">
+                                              <button
+                                                className="edit-btn"
+                                                onClick={() => openEditModal(t)}
+                                                title="Edit tugas"
+                                              >
+                                                ✏️
+                                              </button>
+                                              <button
+                                                className="done-btn"
+                                                onClick={() =>
+                                                  toggleTask(t.id, t.completed)
+                                                }
+                                                title="Tandai belum selesai"
+                                              >
+                                                ↩️
+                                              </button>
+                                              <button
+                                                className="delete-btn"
+                                                onClick={() => deleteTask(t.id)}
+                                                title="Hapus tugas"
+                                              >
+                                                🗑️
+                                              </button>
+                                            </div>
+                                          </li>
+                                        );
+                                      })}
                                     </ul>
                                     <button
                                       className="show-less-btn"
@@ -607,32 +1016,42 @@ export default function App() {
                   <Calendar
                     onChange={setSelectedDate}
                     value={selectedDate}
-                    tileClassName={({ date }) => {
-                      const year = date.getFullYear();
-                      const month = String(date.getMonth() + 1).padStart(2, "0");
-                      const day = String(date.getDate()).padStart(2, "0");
-                      const dateString = `${year}-${month}-${day}`;
-
-                      const incompleteTask = tasks.find(
-                        (task) => task.deadline === dateString && !task.completed
-                      );
-
-                      if (incompleteTask) {
-                        return `calendar-date-with-task ${incompleteTask.subject.toLowerCase().replace(/\s+/g, "-")}`;
-                      }
-                      return null;
-                    }}
+                    tileClassName={getTileClassName}
                     className="custom-calendar"
                     minDetail="month"
+                    // Custom tile element untuk menambah data attributes
+                    tileContent={({ date }) => {
+                      const attrs = getTileDataAttributes({ date });
+                      return (
+                        <div
+                          style={{
+                            display: "contents",
+                            ...Object.fromEntries(
+                              Object.entries(attrs).map(([key, value]) => [
+                                `data-${key.replace("data-", "")}`,
+                                value,
+                              ])
+                            ),
+                          }}
+                        />
+                      );
+                    }}
                   />
                 </div>
                 <div className="selected-date-info">
                   <p className="date-display">{formattedDate}</p>
-                  <p className="task-count">
-                    {tasksOnSelectedDate.length > 0
-                      ? `${tasksOnSelectedDate.length} tugas pada hari ini`
-                      : "Tidak ada tugas"}
-                  </p>
+                  <div className="task-activity-count">
+                    <p className="task-count">
+                      {tasksOnSelectedDate.length > 0
+                        ? `${tasksOnSelectedDate.length} tugas`
+                        : "Tidak ada tugas"}
+                    </p>
+                    <p className="activity-count">
+                      {activitiesOnSelectedDate.length > 0
+                        ? `${activitiesOnSelectedDate.length} kegiatan`
+                        : "Tidak ada kegiatan"}
+                    </p>
+                  </div>
                 </div>
               </div>
             </div>
@@ -687,14 +1106,547 @@ export default function App() {
                       onChange={(e) => setEditDeadline(e.target.value)}
                     />
                   </div>
+
+                  <div className="form-group">
+                    <label>⭐ Prioritas</label>
+                    <select
+                      value={editPriority}
+                      onChange={(e) => setEditPriority(e.target.value)}
+                    >
+                      <option value="">Pilih Prioritas</option>
+                      {priorityLevels.map((level) => (
+                        <option key={level.value} value={level.value}>
+                          {level.icon} {level.label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
                 </div>
 
                 <div className="modal-footer">
-                  <button className="btn-cancel" onClick={closeEditModal}>
+                  <button 
+                    className="btn-cancel" 
+                    onClick={closeEditModal}
+                    disabled={isUpdatingTask}
+                  >
                     Batal
                   </button>
-                  <button className="btn-save" onClick={handleUpdateTask}>
-                    💾 Simpan Perubahan
+                  <button 
+                    className="btn-save" 
+                    onClick={handleUpdateTask}
+                    disabled={isUpdatingTask}
+                  >
+                    {isUpdatingTask ? (
+                      <>⏳ Menyimpan...</>
+                    ) : (
+                      <>💾 Simpan Perubahan</>
+                    )}
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+        </>
+      )}
+
+      {/* ====== HALAMAN KEGIATAN ====== */}
+      {currentPage === "activities" && (
+        <>
+          {/* ====== BAGIAN ATAS - FORM ====== */}
+          <div className="top-section">
+            <div className="container-form">
+              <h1>🎯 Tambah Kegiatan</h1>
+
+              <div className="form-wrapper">
+                <div className="task-form">
+                  <input
+                    type="text"
+                    placeholder="✏️ Nama kegiatan"
+                    value={activityName}
+                    onChange={(e) => setActivityName(e.target.value)}
+                    onKeyPress={(e) => e.key === "Enter" && addActivity()}
+                  />
+
+                  <select
+                    value={activityType}
+                    onChange={(e) => setActivityType(e.target.value)}
+                    className="subject-select"
+                  >
+                    {activityTypes.map((type) => (
+                      <option key={type.name} value={type.name}>
+                        {type.icon} {type.name}
+                      </option>
+                    ))}
+                  </select>
+
+                  <input
+                    type="date"
+                    value={activityDeadline}
+                    onChange={(e) => setActivityDeadline(e.target.value)}
+                  />
+
+                  <select
+                    value={activityPriority}
+                    onChange={(e) => setActivityPriority(e.target.value)}
+                    className="subject-select"
+                  >
+                    {priorityLevels.map((level) => (
+                      <option key={level.value} value={level.value}>
+                        {level.icon} {level.label}
+                      </option>
+                    ))}
+                  </select>
+
+                  <button onClick={addActivity}>+ Tambah</button>
+                </div>
+
+                {message && <p className={`message ${messageType}`}>{message}</p>}
+              </div>
+            </div>
+          </div>
+
+          {/* ====== DIVIDER ====== */}
+          <div className="divider"></div>
+
+          {/* ====== BAGIAN BAWAH - 2 KOLOM (LIST KIRI + CALENDAR KANAN) ====== */}
+          <div className="bottom-section">
+            {/* ====== KOLOM KIRI - LIST KEGIATAN ====== */}
+            <div className="container-list">
+              {loading ? (
+                <p className="empty">⏳ Memuat kegiatan...</p>
+              ) : activities.length === 0 ? (
+                <p className="empty">📭 Belum ada kegiatan</p>
+              ) : (
+                <>
+                  {/* Tampilkan kegiatan pada tanggal terpilih */}
+                  {activitiesOnSelectedDate.length > 0 && (
+                    <div className="selected-date-tasks">
+                      <h2 className="selected-date-title">
+                        ✨ Kegiatan Terpilih ({activitiesOnSelectedDate.length})
+                      </h2>
+                      <ul className="task-list">
+                        {activitiesOnSelectedDate.map((a) => {
+                          const priorityInfo = priorityLevels.find(p => p.value === (a.priority || "medium"));
+                          return (
+                            <li key={a.id} className={a.completed ? "completed" : ""}>
+                              <div className="task-info">
+                                <strong>{a.name}</strong>
+                                <div className="task-meta">
+                                  <span className={`badge priority-badge priority-${a.priority || "medium"}`}>
+                                    {priorityInfo?.icon} {priorityInfo?.label}
+                                  </span>
+                                  <span className="badge subject-badge">
+                                    {activityTypes.find(t => t.name === (a.activity_type || "Lainnya"))?.icon || "�"} {a.activity_type || "Lainnya"}
+                                  </span>
+                                  <span className="badge deadline-badge">
+                                    📅 {a.deadline}
+                                  </span>
+                                </div>
+                              </div>
+                              <div className="task-buttons">
+                                <button
+                                  className="edit-btn"
+                                  onClick={() => openEditActivityModal(a)}
+                                  title="Edit kegiatan"
+                                >
+                                  ✏️
+                                </button>
+                                <button
+                                  className="done-btn"
+                                  onClick={() => toggleActivity(a.id, a.completed)}
+                                  title={
+                                    a.completed
+                                      ? "Tandai belum selesai"
+                                      : "Tandai selesai"
+                                  }
+                                >
+                                  {a.completed ? "↩️" : "✅"}
+                                </button>
+                                <button
+                                  className="delete-btn"
+                                  onClick={() => deleteActivity(a.id)}
+                                  title="Hapus kegiatan"
+                                >
+                                  🗑️
+                                </button>
+                              </div>
+                            </li>
+                          );
+                        })}
+                      </ul>
+                    </div>
+                  )}
+
+                  {/* Tampilkan semua kegiatan berdasarkan jenis kegiatan */}
+                  <div className="subject-sections">
+                    <h2 className="all-tasks-title">🎯 Semua Kegiatan</h2>
+                    {Object.keys(activitiesByType).length === 0 ? (
+                      <p className="empty">Tidak ada kegiatan</p>
+                    ) : (
+                      Object.keys(activitiesByType).map((typeName) => {
+                        const { pending, completed } = activitiesByType[typeName];
+                        const isExpanded = expandedSections[`${typeName}_activity_completed`];
+                        const displayedPending = pending.slice(0, 3);
+                        const hiddenPendingCount = pending.length - 3;
+                        const typeInfo = activityTypes.find(t => t.name === typeName) || { icon: "📝", name: typeName };
+
+                        return (
+                          <div key={typeName} className="subject-section">
+                            <h3 className="subject-title">{typeInfo.icon} {typeName}</h3>
+
+                            {/* ====== KEGIATAN BELUM SELESAI ====== */}
+                            {pending.length > 0 && (
+                              <div className="task-group">
+                                <div className="task-group-header">
+                                  <span className="task-group-label">
+                                    ⏳ Belum Selesai ({pending.length})
+                                  </span>
+                                </div>
+                                <ul className="task-list">
+                                  {displayedPending.map((a) => {
+                                    const priorityInfo = priorityLevels.find(p => p.value === (a.priority || "medium"));
+                                    return (
+                                      <li key={a.id} className="pending">
+                                        <div className="task-info">
+                                          <strong>{a.name}</strong>
+                                          <div className="task-meta">
+                                            <span className={`badge priority-badge priority-${a.priority || "medium"}`}>
+                                              {priorityInfo?.icon} {priorityInfo?.label}
+                                            </span>
+                                            <span className="badge deadline-badge">
+                                              📅 {a.deadline}
+                                            </span>
+                                          </div>
+                                        </div>
+                                        <div className="task-buttons">
+                                          <button
+                                            className="edit-btn"
+                                            onClick={() => openEditActivityModal(a)}
+                                            title="Edit kegiatan"
+                                          >
+                                            ✏️
+                                          </button>
+                                          <button
+                                            className="done-btn"
+                                            onClick={() =>
+                                              toggleActivity(a.id, a.completed)
+                                            }
+                                            title="Tandai selesai"
+                                          >
+                                            ✅
+                                          </button>
+                                          <button
+                                            className="delete-btn"
+                                            onClick={() => deleteActivity(a.id)}
+                                            title="Hapus kegiatan"
+                                          >
+                                            🗑️
+                                          </button>
+                                        </div>
+                                      </li>
+                                    );
+                                  })}
+                                </ul>
+
+                                {/* ====== SHOW MORE BUTTON ====== */}
+                                {hiddenPendingCount > 0 && (
+                                  <button
+                                    className="show-more-btn"
+                                    onClick={() =>
+                                      toggleSection(`${typeName}_activity_pending`)
+                                    }
+                                  >
+                                    👇 Tampilkan {hiddenPendingCount} kegiatan lagi
+                                  </button>
+                                )}
+
+                                {/* ====== EXPANDED PENDING ACTIVITIES ====== */}
+                                {expandedSections[`${typeName}_activity_pending`] && (
+                                  <>
+                                    <ul className="task-list">
+                                      {pending.slice(3).map((a) => {
+                                        const priorityInfo = priorityLevels.find(p => p.value === (a.priority || "medium"));
+                                        return (
+                                          <li key={a.id} className="pending">
+                                            <div className="task-info">
+                                              <strong>{a.name}</strong>
+                                              <div className="task-meta">
+                                                <span className={`badge priority-badge priority-${a.priority || "medium"}`}>
+                                                  {priorityInfo?.icon} {priorityInfo?.label}
+                                                </span>
+                                                <span className="badge deadline-badge">
+                                                  📅 {a.deadline}
+                                                </span>
+                                              </div>
+                                            </div>
+                                            <div className="task-buttons">
+                                              <button
+                                                className="edit-btn"
+                                                onClick={() => openEditActivityModal(a)}
+                                                title="Edit kegiatan"
+                                              >
+                                                ✏️
+                                              </button>
+                                              <button
+                                                className="done-btn"
+                                                onClick={() =>
+                                                  toggleActivity(a.id, a.completed)
+                                                }
+                                                title="Tandai selesai"
+                                              >
+                                                ✅
+                                              </button>
+                                              <button
+                                                className="delete-btn"
+                                                onClick={() => deleteActivity(a.id)}
+                                                title="Hapus kegiatan"
+                                              >
+                                                🗑️
+                                              </button>
+                                            </div>
+                                          </li>
+                                        );
+                                      })}
+                                    </ul>
+                                    <button
+                                      className="show-less-btn"
+                                      onClick={() =>
+                                        toggleSection(`${typeName}_activity_pending`)
+                                      }
+                                    >
+                                      👆 Tutup
+                                    </button>
+                                  </>
+                                )}
+                              </div>
+                            )}
+
+                            {/* ====== KEGIATAN SELESAI ====== */}
+                            {completed.length > 0 && (
+                              <div className="task-group">
+                                <div className="task-group-header">
+                                  <span className="task-group-label">
+                                    ✅ Selesai ({completed.length})
+                                  </span>
+                                </div>
+
+                                {/* ====== TOGGLE COMPLETED ACTIVITIES ====== */}
+                                {!isExpanded && (
+                                  <button
+                                    className="show-more-btn completed"
+                                    onClick={() =>
+                                      toggleSection(`${typeName}_activity_completed`)
+                                    }
+                                  >
+                                    👇 Tampilkan {completed.length} kegiatan selesai
+                                  </button>
+                                )}
+
+                                {/* ====== EXPANDED COMPLETED ACTIVITIES ====== */}
+                                {isExpanded && (
+                                  <>
+                                    <ul className="task-list">
+                                      {completed.map((a) => {
+                                        const priorityInfo = priorityLevels.find(p => p.value === (a.priority || "medium"));
+                                        return (
+                                          <li key={a.id} className="completed">
+                                            <div className="task-info">
+                                              <strong>{a.name}</strong>
+                                              <div className="task-meta">
+                                                <span className={`badge priority-badge priority-${a.priority || "medium"}`}>
+                                                  {priorityInfo?.icon} {priorityInfo?.label}
+                                                </span>
+                                                <span className="badge subject-badge">
+                                                  {activityTypes.find(t => t.name === (a.activity_type || "Lainnya"))?.icon || "�"} {a.activity_type || "Lainnya"}
+                                                </span>
+                                                <span className="badge deadline-badge">
+                                                  📅 {a.deadline}
+                                                </span>
+                                              </div>
+                                            </div>
+                                            <div className="task-buttons">
+                                              <button
+                                                className="edit-btn"
+                                                onClick={() => openEditActivityModal(a)}
+                                                title="Edit kegiatan"
+                                              >
+                                                ✏️
+                                              </button>
+                                              <button
+                                                className="done-btn"
+                                                onClick={() =>
+                                                  toggleActivity(a.id, a.completed)
+                                                }
+                                                title="Tandai belum selesai"
+                                              >
+                                                ↩️
+                                              </button>
+                                              <button
+                                                className="delete-btn"
+                                                onClick={() => deleteActivity(a.id)}
+                                                title="Hapus kegiatan"
+                                              >
+                                                🗑️
+                                              </button>
+                                            </div>
+                                          </li>
+                                        );
+                                      })}
+                                    </ul>
+                                    <button
+                                      className="show-less-btn"
+                                      onClick={() =>
+                                        toggleSection(`${typeName}_activity_completed`)
+                                      }
+                                    >
+                                      👆 Tutup
+                                    </button>
+                                  </>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })
+                    )}
+                  </div>
+                </>
+              )}
+            </div>
+
+            {/* ====== KOLOM KANAN - CALENDAR ====== */}
+            <div className="calendar-section">
+              <div className="calendar-wrapper">
+                <h3 className="calendar-title">📅 Pilih Tanggal</h3>
+                <div className="calendar-container">
+                  <Calendar
+                    onChange={setSelectedDate}
+                    value={selectedDate}
+                    tileClassName={getTileClassName}
+                    className="custom-calendar"
+                    minDetail="month"
+                    // Custom tile element untuk menambah data attributes
+                    tileContent={({ date }) => {
+                      const attrs = getTileDataAttributes({ date });
+                      return (
+                        <div
+                          style={{
+                            display: "contents",
+                            ...Object.fromEntries(
+                              Object.entries(attrs).map(([key, value]) => [
+                                `data-${key.replace("data-", "")}`,
+                                value,
+                              ])
+                            ),
+                          }}
+                        />
+                      );
+                    }}
+                  />
+                </div>
+                <div className="selected-date-info">
+                  <p className="date-display">{formattedDate}</p>
+                  <div className="task-activity-count">
+                    <p className="task-count">
+                      {tasksOnSelectedDate.length > 0
+                        ? `${tasksOnSelectedDate.length} tugas`
+                        : "Tidak ada tugas"}
+                    </p>
+                    <p className="activity-count">
+                      {activitiesOnSelectedDate.length > 0
+                        ? `${activitiesOnSelectedDate.length} kegiatan`
+                        : "Tidak ada kegiatan"}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* ====== EDIT ACTIVITY MODAL ====== */}
+          {showEditActivityModal && (
+            <div className="modal-overlay" onClick={closeEditActivityModal}>
+              <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+                <div className="modal-header">
+                  <h2>✏️ Edit Kegiatan</h2>
+                  <button
+                    className="modal-close"
+                    onClick={closeEditActivityModal}
+                    title="Tutup"
+                  >
+                    ✕
+                  </button>
+                </div>
+
+                <div className="modal-body">
+                  <div className="form-group">
+                    <label>🎯 Nama Kegiatan</label>
+                    <input
+                      type="text"
+                      value={editActivityName}
+                      onChange={(e) => setEditActivityName(e.target.value)}
+                      placeholder="Masukkan nama kegiatan"
+                    />
+                  </div>
+
+                  <div className="form-group">
+                    <label>🎯 Jenis Kegiatan</label>
+                    <select
+                      value={editActivityType}
+                      onChange={(e) => setEditActivityType(e.target.value)}
+                    >
+                      <option value="">Pilih Jenis Kegiatan</option>
+                      {activityTypes.map((type) => (
+                        <option key={type.name} value={type.name}>
+                          {type.icon} {type.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div className="form-group">
+                    <label>📅 Deadline</label>
+                    <input
+                      type="date"
+                      value={editActivityDeadline}
+                      onChange={(e) => setEditActivityDeadline(e.target.value)}
+                    />
+                  </div>
+
+                  <div className="form-group">
+                    <label>⭐ Prioritas</label>
+                    <select
+                      value={editActivityPriority}
+                      onChange={(e) => setEditActivityPriority(e.target.value)}
+                    >
+                      <option value="">Pilih Prioritas</option>
+                      {priorityLevels.map((level) => (
+                        <option key={level.value} value={level.value}>
+                          {level.icon} {level.label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                <div className="modal-footer">
+                  <button 
+                    className="btn-cancel" 
+                    onClick={closeEditActivityModal}
+                    disabled={isUpdatingActivity}
+                  >
+                    Batal
+                  </button>
+                  <button 
+                    className="btn-save" 
+                    onClick={handleUpdateActivity}
+                    disabled={isUpdatingActivity}
+                  >
+                    {isUpdatingActivity ? (
+                      <>⏳ Menyimpan...</>
+                    ) : (
+                      <>💾 Simpan Perubahan</>
+                    )}
                   </button>
                 </div>
               </div>
