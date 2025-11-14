@@ -61,16 +61,292 @@ export default function App() {
     return `${year}-${month}-${day}`;
   }
 
-  // ====== DAFTAR MATA KULIAH DENGAN WARNA ======
-  const subjects = [
-    { name: "Forensik Digital I", color: "#FF6B6B", bgColor: "#FFE8E8" },
-    { name: "Etos Sandi V", color: "#4ECDC4", bgColor: "#E0F7F6" },
-    { name: "Tata Kelola Keamanan Siber", color: "#FFD93D", bgColor: "#FFF9E6" },
-    { name: "Analisis Aplikasi Berbahaya", color: "#6C5CE7", bgColor: "#F3E9FF" },
-    { name: "Uji Penetrasi I", color: "#A29BFE", bgColor: "#F4F1FF" },
-    { name: "Monitoring dan Deteksi I", color: "#00B894", bgColor: "#E8F8F0" },
-    { name: "Hukum dan Etika Profesi", color: "#E17055", bgColor: "#FFECEB" },
-  ];
+  // ====== HELPER FUNCTION UNTUK ROLE ======
+  function getRoleDisplay(role) {
+    const roleMap = {
+      'admin': '👑 Admin',
+      'moderator': '🛡️ Moderator', 
+      'user': '🎯 User'
+    };
+    return roleMap[role] || '🎯 User';
+  }
+
+  // ====== ADMIN FUNCTIONS - MANAGE SUBJECTS ======
+  async function addSubject() {
+    if (!newSubjectName.trim()) {
+      showMessage("⚠️ Nama mata kuliah tidak boleh kosong", "error");
+      return;
+    }
+
+    if (!newSubjectIcon) {
+      showMessage("⚠️ Silakan pilih icon untuk mata kuliah", "error");
+      return;
+    }
+
+    try {
+      // Pilih preset warna secara random atau berdasarkan index
+      const randomColorIndex = Math.floor(Math.random() * subjectColorPresets.length);
+      const selectedColorPreset = subjectColorPresets[randomColorIndex];
+
+      const { data, error } = await supabase.rpc('add_subject', {
+        subject_name: newSubjectName.trim(),
+        subject_icon: newSubjectIcon,
+        subject_color: selectedColorPreset.color,
+        subject_bg_color: selectedColorPreset.bgColor
+      });
+
+      if (error) {
+        console.error('Error adding subject:', error);
+        showMessage("❌ Gagal menambahkan mata kuliah!", "error");
+        return;
+      }
+
+      // Refresh data dari database
+      await fetchSubjects();
+      showMessage("✅ Mata kuliah berhasil ditambahkan!", "success");
+      
+      // Reset form
+      setNewSubjectName("");
+      setNewSubjectIcon("");
+    } catch (error) {
+      console.error('Error:', error);
+      showMessage("❌ Terjadi kesalahan saat menambahkan mata kuliah!", "error");
+    }
+  }
+
+  async function deleteSubject(index) {
+    const subject = adminSubjects[index];
+    if (!subject) return;
+
+    const confirmDelete = window.confirm(`Apakah Anda yakin ingin menghapus mata kuliah "${subject.name}"?\n\nTindakan ini tidak dapat dibatalkan.`);
+    
+    if (confirmDelete) {
+      try {
+        const { error } = await supabase.rpc('delete_subject_by_id', {
+          subject_id: subject.id
+        });
+
+        if (error) {
+          console.error('Error deleting subject:', error);
+          showMessage("❌ Gagal menghapus mata kuliah!", "error");
+          return;
+        }
+
+        // Refresh data dari database
+        await fetchSubjects();
+        showMessage("✅ Mata kuliah berhasil dihapus!", "success");
+      } catch (error) {
+        console.error('Error:', error);
+        showMessage("❌ Terjadi kesalahan saat menghapus mata kuliah!", "error");
+      }
+    }
+  }
+
+  // Fetch subjects from database
+  async function fetchSubjects() {
+    setLoadingSubjects(true);
+    try {
+      const { data, error } = await supabase.rpc('get_all_subjects');
+      
+      if (error) {
+        console.error('Error fetching subjects:', error);
+        showMessage("❌ Gagal memuat mata kuliah!", "error");
+        return;
+      }
+
+      // Convert database format to component format
+      const formattedSubjects = data.map(subject => ({
+        id: subject.id,
+        name: subject.name,
+        icon: subject.icon,
+        color: subject.color,
+        bgColor: subject.bg_color
+      }));
+
+      setAdminSubjects(formattedSubjects);
+    } catch (error) {
+      console.error('Error:', error);
+      showMessage("❌ Terjadi kesalahan saat memuat mata kuliah!", "error");
+    } finally {
+      setLoadingSubjects(false);
+    }
+  }
+
+  // Fetch activity types from database
+  async function fetchActivityTypes() {
+    setLoadingActivityTypes(true);
+    try {
+      const { data, error } = await supabase.rpc('get_all_activity_types');
+      
+      if (error) {
+        console.error('Error fetching activity types:', error);
+        showMessage("❌ Gagal memuat jenis kegiatan!", "error");
+        return;
+      }
+
+      // Convert database format to component format
+      const formattedActivityTypes = data.map(activityType => ({
+        id: activityType.id,
+        name: activityType.name,
+        icon: activityType.icon,
+        color: activityType.color,
+        bgColor: activityType.bg_color
+      }));
+
+      setAdminActivityTypes(formattedActivityTypes);
+    } catch (error) {
+      console.error('Error:', error);
+      showMessage("❌ Terjadi kesalahan saat memuat jenis kegiatan!", "error");
+    } finally {
+      setLoadingActivityTypes(false);
+    }
+  }
+
+  // Helper function untuk mendapatkan info mata kuliah berdasarkan nama
+  function getSubjectInfo(subjectName) {
+    const subjectInfo = adminSubjects.find(subject => subject.name === subjectName);
+    return subjectInfo || { name: subjectName, icon: "📚", color: "#4ECDC4", bgColor: "#E0F7F6" };
+  }
+
+  // Update subject icon
+  async function updateSubjectIcon(subjectId, newIcon) {
+    // Jika user memilih "Pilih Icon" (value kosong), tutup editor tanpa update
+    if (!newIcon) {
+      setEditingSubjectIcon(null);
+      return;
+    }
+
+    try {
+      const { error } = await supabase
+        .from('subjects')
+        .update({ icon: newIcon })
+        .eq('id', subjectId);
+
+      if (error) {
+        console.error('Error updating subject icon:', error);
+        showMessage("❌ Gagal mengubah icon mata kuliah!", "error");
+        return;
+      }
+
+      await fetchSubjects();
+      setEditingSubjectIcon(null);
+      showMessage("✅ Icon mata kuliah berhasil diubah!", "success");
+    } catch (error) {
+      console.error('Error:', error);
+      showMessage("❌ Terjadi kesalahan saat mengubah icon!", "error");
+    }
+  }
+
+  // Update activity type icon
+  async function updateActivityTypeIcon(activityTypeId, newIcon) {
+    // Jika user memilih "Pilih Icon" (value kosong), tutup editor tanpa update
+    if (!newIcon) {
+      setEditingActivityIcon(null);
+      return;
+    }
+
+    try {
+      const { error } = await supabase
+        .from('activity_types')
+        .update({ icon: newIcon })
+        .eq('id', activityTypeId);
+
+      if (error) {
+        console.error('Error updating activity type icon:', error);
+        showMessage("❌ Gagal mengubah icon jenis kegiatan!", "error");
+        return;
+      }
+
+      await fetchActivityTypes();
+      setEditingActivityIcon(null);
+      showMessage("✅ Icon jenis kegiatan berhasil diubah!", "success");
+    } catch (error) {
+      console.error('Error:', error);
+      showMessage("❌ Terjadi kesalahan saat mengubah icon!", "error");
+    }
+  }
+
+  // ====== ADMIN FUNCTIONS - MANAGE ACTIVITY TYPES ======
+  async function addActivityType() {
+    if (!newActivityTypeName.trim()) {
+      showMessage("⚠️ Nama jenis kegiatan tidak boleh kosong", "error");
+      return;
+    }
+
+    if (!newActivityTypeIcon) {
+      showMessage("⚠️ Silakan pilih icon untuk jenis kegiatan", "error");
+      return;
+    }
+
+    try {
+      // Pilih preset warna secara random
+      const activityColorPresets = [
+        { color: "#FF6B6B", bgColor: "#FFE8E8" },
+        { color: "#4ECDC4", bgColor: "#E0F7F6" },
+        { color: "#6C5CE7", bgColor: "#F3E9FF" },
+        { color: "#FFD93D", bgColor: "#FFF9E6" },
+        { color: "#A29BFE", bgColor: "#F4F1FF" }
+      ];
+      const randomColorIndex = Math.floor(Math.random() * activityColorPresets.length);
+      const selectedColorPreset = activityColorPresets[randomColorIndex];
+
+      const { data, error } = await supabase.rpc('add_activity_type', {
+        activity_type_name: newActivityTypeName.trim(),
+        activity_type_icon: newActivityTypeIcon,
+        activity_type_color: selectedColorPreset.color,
+        activity_type_bg_color: selectedColorPreset.bgColor
+      });
+
+      if (error) {
+        console.error('Error adding activity type:', error);
+        showMessage("❌ Gagal menambahkan jenis kegiatan!", "error");
+        return;
+      }
+
+      // Refresh data dari database
+      await fetchActivityTypes();
+      showMessage("✅ Jenis kegiatan berhasil ditambahkan!", "success");
+      
+      // Reset form
+      setNewActivityTypeName("");
+      setNewActivityTypeIcon("");
+    } catch (error) {
+      console.error('Error:', error);
+      showMessage("❌ Terjadi kesalahan saat menambahkan jenis kegiatan!", "error");
+    }
+  }
+
+  async function deleteActivityType(index) {
+    const activityType = adminActivityTypes[index];
+    if (!activityType) return;
+
+    const confirmDelete = window.confirm(`Apakah Anda yakin ingin menghapus jenis kegiatan "${activityType.name}"?\n\nTindakan ini tidak dapat dibatalkan.`);
+    
+    if (confirmDelete) {
+      try {
+        const { error } = await supabase.rpc('delete_activity_type_by_id', {
+          activity_type_id: activityType.id
+        });
+
+        if (error) {
+          console.error('Error deleting activity type:', error);
+          showMessage("❌ Gagal menghapus jenis kegiatan!", "error");
+          return;
+        }
+
+        // Refresh data dari database
+        await fetchActivityTypes();
+        showMessage("✅ Jenis kegiatan berhasil dihapus!", "success");
+      } catch (error) {
+        console.error('Error:', error);
+        showMessage("❌ Terjadi kesalahan saat menghapus jenis kegiatan!", "error");
+      }
+    }
+  }
+
+  // ====== DATA SUBJECTS DAN ACTIVITY TYPES SEKARANG DARI DATABASE ======
+  // adminSubjects dan adminActivityTypes diload dari Supabase
+  // dan digunakan oleh semua user untuk dropdown form
 
   // ====== PRIORITY LEVELS ======
   const priorityLevels = [
@@ -79,14 +355,33 @@ export default function App() {
     { value: "high", label: "Tinggi", color: "#FF6B6B", icon: "🔴" },
   ];
 
-  // ====== JENIS KEGIATAN ======
-  const activityTypes = [
-    { name: "Lomba", color: "#FF6B6B", bgColor: "#FFE8E8", icon: "🏆" },
-    { name: "IK", color: "#4ECDC4", bgColor: "#E0F7F6", icon: "🎓" },
-    { name: "POLTEK", color: "#6C5CE7", bgColor: "#F3E9FF", icon: "🏫" },
-    { name: "Luar", color: "#FFD93D", bgColor: "#FFF9E6", icon: "🌍" },
-    { name: "Lainnya", color: "#A29BFE", bgColor: "#F4F1FF", icon: "📝" },
+  // ====== PRESET WARNA UNTUK MATA KULIAH ======
+  const subjectColorPresets = [
+    { color: "#FF6B6B", bgColor: "#FFE8E8" },
+    { color: "#4ECDC4", bgColor: "#E0F7F6" },
+    { color: "#FFD93D", bgColor: "#FFF9E6" },
+    { color: "#6C5CE7", bgColor: "#F3E9FF" },
+    { color: "#A29BFE", bgColor: "#F4F1FF" },
+    { color: "#00B894", bgColor: "#E8F8F0" },
+    { color: "#E17055", bgColor: "#FFECEB" },
   ];
+
+  // ====== STATE UNTUK ADMIN DASHBOARD ======
+  const [adminSubjects, setAdminSubjects] = useState([]);
+  const [adminActivityTypes, setAdminActivityTypes] = useState([]);
+  const [loadingSubjects, setLoadingSubjects] = useState(false);
+  const [loadingActivityTypes, setLoadingActivityTypes] = useState(false);
+  
+  // Form states untuk admin
+  const [newSubjectName, setNewSubjectName] = useState("");
+  const [newSubjectIcon, setNewSubjectIcon] = useState("");
+  
+  const [newActivityTypeName, setNewActivityTypeName] = useState("");
+  const [newActivityTypeIcon, setNewActivityTypeIcon] = useState("");
+  
+  // Edit states untuk icon picker
+  const [editingSubjectIcon, setEditingSubjectIcon] = useState(null);
+  const [editingActivityIcon, setEditingActivityIcon] = useState(null);
 
   // ====== CHECK LOGIN STATUS ======
   useEffect(() => {
@@ -110,6 +405,15 @@ export default function App() {
     localStorage.setItem("darkMode", darkMode);
   }, [darkMode]);
 
+  // Load subjects and activity types data for all logged in users (for dropdowns)
+  // But only admin can access dashboard to manage the data
+  useEffect(() => {
+    if (isLoggedIn && user) {
+      fetchSubjects();
+      fetchActivityTypes();
+    }
+  }, [isLoggedIn, user]);
+
   // ====== FETCH TASKS BERDASARKAN USER ======
   async function fetchTasks(userId) {
     try {
@@ -127,23 +431,6 @@ export default function App() {
       showMessage("Gagal memuat data tugas ❗", "error");
     } finally {
       setLoading(false);
-    }
-  }
-
-  // ====== FETCH ACTIVITIES BERDASARKAN USER ======
-  async function fetchActivities(userId) {
-    try {
-      const { data, error } = await supabase
-        .from("activities")
-        .select("*")
-        .eq("user_id", userId)
-        .order("deadline", { ascending: true });
-
-      if (error) throw error;
-      setActivities(data || []);
-    } catch (err) {
-      console.error("❌ Error fetching activities:", err.message);
-      showMessage("Gagal memuat data kegiatan ❗", "error");
     }
   }
 
@@ -627,10 +914,21 @@ export default function App() {
               >
                 📚 Jadwal Kuliah
               </button>
+              {user?.role === "admin" && (
+                <button
+                  className={`nav-link admin-nav ${currentPage === "admin" ? "active" : ""}`}
+                  onClick={() => setCurrentPage("admin")}
+                >
+                  👑 Dashboard Admin
+                </button>
+              )}
             </div>
           </div>
           <div className="navbar-user">
-            <span className="user-info">👤 {user?.username}</span>
+            <div className="user-info">
+              <span>👤 {user?.username}</span>
+              <span className="user-role">{getRoleDisplay(user?.role)}</span>
+            </div>
             <button 
               onClick={() => setDarkMode(!darkMode)} 
               className="theme-toggle-btn"
@@ -669,9 +967,9 @@ export default function App() {
                     className="subject-select"
                   >
                     <option value="">📚 Pilih Mata Kuliah</option>
-                    {subjects.map((subj) => (
+                    {adminSubjects.map((subj) => (
                       <option key={subj.name} value={subj.name}>
-                        {subj.name}
+                        {subj.icon} {subj.name}
                       </option>
                     ))}
                   </select>
@@ -734,7 +1032,7 @@ export default function App() {
                                     {priorityInfo?.icon} {priorityInfo?.label}
                                   </span>
                                   <span className="badge subject-badge">
-                                    📚 {t.subject}
+                                    {getSubjectInfo(t.subject).icon} {t.subject}
                                   </span>
                                   <span className="badge deadline-badge">
                                     📅 {t.deadline}
@@ -787,9 +1085,10 @@ export default function App() {
                         const displayedPending = pending.slice(0, 3);
                         const hiddenPendingCount = pending.length - 3;
 
+                        const subjectInfo = getSubjectInfo(subjectName);
                         return (
                           <div key={subjectName} className="subject-section">
-                            <h3 className="subject-title">📚 {subjectName}</h3>
+                            <h3 className="subject-title">{subjectInfo.icon} {subjectName}</h3>
 
                             {/* ====== TASK BELUM SELESAI ====== */}
                             {pending.length > 0 && (
@@ -1090,9 +1389,9 @@ export default function App() {
                       onChange={(e) => setEditSubject(e.target.value)}
                     >
                       <option value="">Pilih Mata Kuliah</option>
-                      {subjects.map((subj) => (
+                      {adminSubjects.map((subj) => (
                         <option key={subj.name} value={subj.name}>
-                          {subj.name}
+                          {subj.icon} {subj.name}
                         </option>
                       ))}
                     </select>
@@ -1172,7 +1471,7 @@ export default function App() {
                     onChange={(e) => setActivityType(e.target.value)}
                     className="subject-select"
                   >
-                    {activityTypes.map((type) => (
+                    {adminActivityTypes.map((type) => (
                       <option key={type.name} value={type.name}>
                         {type.icon} {type.name}
                       </option>
@@ -1236,7 +1535,7 @@ export default function App() {
                                     {priorityInfo?.icon} {priorityInfo?.label}
                                   </span>
                                   <span className="badge subject-badge">
-                                    {activityTypes.find(t => t.name === (a.activity_type || "Lainnya"))?.icon || "�"} {a.activity_type || "Lainnya"}
+                                    {adminActivityTypes.find(t => t.name === (a.activity_type || "Lainnya"))?.icon || "�"} {a.activity_type || "Lainnya"}
                                   </span>
                                   <span className="badge deadline-badge">
                                     📅 {a.deadline}
@@ -1288,7 +1587,7 @@ export default function App() {
                         const isExpanded = expandedSections[`${typeName}_activity_completed`];
                         const displayedPending = pending.slice(0, 3);
                         const hiddenPendingCount = pending.length - 3;
-                        const typeInfo = activityTypes.find(t => t.name === typeName) || { icon: "📝", name: typeName };
+                        const typeInfo = adminActivityTypes.find(t => t.name === typeName) || { icon: "📝", name: typeName };
 
                         return (
                           <div key={typeName} className="subject-section">
@@ -1457,7 +1756,7 @@ export default function App() {
                                                   {priorityInfo?.icon} {priorityInfo?.label}
                                                 </span>
                                                 <span className="badge subject-badge">
-                                                  {activityTypes.find(t => t.name === (a.activity_type || "Lainnya"))?.icon || "�"} {a.activity_type || "Lainnya"}
+                                                  {adminActivityTypes.find(t => t.name === (a.activity_type || "Lainnya"))?.icon || "�"} {a.activity_type || "Lainnya"}
                                                 </span>
                                                 <span className="badge deadline-badge">
                                                   📅 {a.deadline}
@@ -1596,7 +1895,7 @@ export default function App() {
                       onChange={(e) => setEditActivityType(e.target.value)}
                     >
                       <option value="">Pilih Jenis Kegiatan</option>
-                      {activityTypes.map((type) => (
+                      {adminActivityTypes.map((type) => (
                         <option key={type.name} value={type.name}>
                           {type.icon} {type.name}
                         </option>
@@ -1671,6 +1970,221 @@ export default function App() {
           </div>
         </div>
       )}
+
+      {/* ====== HALAMAN DASHBOARD ADMIN ====== */}
+      {currentPage === "admin" && user?.role === "admin" && (
+        <div className="admin-page">
+          <div className="admin-container">
+            <div className="admin-header">
+              <h1>👑 Dashboard Admin</h1>
+              <p className="admin-subtitle">Kelola mata kuliah dan jenis kegiatan</p>
+            </div>
+
+            <div className="admin-content">
+              {/* ====== SECTION: MATA KULIAH ====== */}
+              <div className="admin-section">
+                <div className="section-header">
+                  <h2>📚 Kelola Mata Kuliah</h2>
+                  <div className="add-form">
+                    <input
+                      type="text"
+                      placeholder="Nama mata kuliah baru"
+                      value={newSubjectName}
+                      onChange={(e) => setNewSubjectName(e.target.value)}
+                      className="admin-input"
+                    />
+                    <select
+                      value={newSubjectIcon}
+                      onChange={(e) => setNewSubjectIcon(e.target.value)}
+                      className="icon-select"
+                    >
+                      <option value="">Pilih Icon</option>
+                      <option value="📚">📚 Buku</option>
+                      <option value="💻">💻 Komputer</option>
+                      <option value="🔬">🔬 Sains</option>
+                      <option value="📐">📐 Matematika</option>
+                      <option value="🎨">🎨 Seni</option>
+                      <option value="🌐">🌐 Web</option>
+                      <option value="⚡">⚡ Elektro</option>
+                      <option value="🏗️">🏗️ Teknik</option>
+                      <option value="💼">💼 Bisnis</option>
+                      <option value="🧪">🧪 Laboratorium</option>
+                      <option value="📊">📊 Data</option>
+                      <option value="🔧">🔧 Praktikum</option>
+                    </select>
+                    <button onClick={addSubject} className="add-btn">
+                      ➕ Tambah
+                    </button>
+                  </div>
+                </div>
+                
+                <div className="items-grid">
+                  {loadingSubjects ? (
+                    <div className="loading-container">
+                      <div className="loading-spinner"></div>
+                      <p>Memuat mata kuliah...</p>
+                    </div>
+                  ) : adminSubjects.length === 0 ? (
+                    <div className="empty-state">
+                      <p>Belum ada mata kuliah. Tambahkan yang pertama!</p>
+                    </div>
+                  ) : (
+                    adminSubjects.map((subject, index) => (
+                      <div key={subject.id || index} className="admin-item">
+                        <div className="item-preview">
+                          {editingSubjectIcon === subject.id ? (
+                            <div className="icon-picker-inline">
+                              <select
+                                defaultValue=""
+                                onChange={(e) => updateSubjectIcon(subject.id, e.target.value)}
+                                className="icon-select-small"
+                                autoFocus
+                                onBlur={() => setEditingSubjectIcon(null)}
+                              >
+                                <option value="">Pilih Icon</option>
+                                <option value="📚">📚 Buku</option>
+                                <option value="💻">💻 Komputer</option>
+                                <option value="🔬">🔬 Sains</option>
+                                <option value="📐">📐 Matematika</option>
+                                <option value="🎨">🎨 Seni</option>
+                                <option value="🌐">🌐 Web</option>
+                                <option value="⚡">⚡ Elektro</option>
+                                <option value="🏗️">🏗️ Teknik</option>
+                                <option value="💼">💼 Bisnis</option>
+                                <option value="🧪">🧪 Laboratorium</option>
+                                <option value="📊">📊 Data</option>
+                                <option value="🔧">🔧 Praktikum</option>
+                                <option value="🔍">🔍 Forensik</option>
+                                <option value="🔐">🔐 Keamanan</option>
+                                <option value="🛡️">🛡️ Cyber Security</option>
+                                <option value="🦠">🦠 Malware</option>
+                                <option value="⚖️">⚖️ Hukum</option>
+                              </select>
+                            </div>
+                          ) : (
+                            <span 
+                              className="icon-clickable" 
+                              onClick={() => setEditingSubjectIcon(subject.id)}
+                              title="Klik untuk mengubah icon"
+                            >
+                              {subject.icon}
+                            </span>
+                          )}
+                          <span>{subject.name}</span>
+                        </div>
+                      <button 
+                        onClick={() => deleteSubject(index)} 
+                        className="delete-btn"
+                        title="Hapus mata kuliah"
+                      >
+                        🗑️
+                      </button>
+                    </div>
+                    ))
+                  )}
+                </div>
+              </div>
+
+              {/* ====== SECTION: JENIS KEGIATAN ====== */}
+              <div className="admin-section">
+                <div className="section-header">
+                  <h2>🎯 Kelola Jenis Kegiatan</h2>
+                  <div className="add-form">
+                    <input
+                      type="text"
+                      placeholder="Nama jenis kegiatan baru"
+                      value={newActivityTypeName}
+                      onChange={(e) => setNewActivityTypeName(e.target.value)}
+                      className="admin-input"
+                    />
+                    <select
+                      value={newActivityTypeIcon}
+                      onChange={(e) => setNewActivityTypeIcon(e.target.value)}
+                      className="icon-select"
+                    >
+                      <option value="">Pilih Icon</option>
+                      <option value="📝">📝 Default</option>
+                      <option value="🏆">🏆 Lomba</option>
+                      <option value="🎓">🎓 Akademik</option>
+                      <option value="🏫">🏫 Kampus</option>
+                      <option value="🌍">🌍 Eksternal</option>
+                      <option value="💼">💼 Profesional</option>
+                      <option value="🎨">🎨 Kreatif</option>
+                      <option value="⚽">⚽ Olahraga</option>
+                      <option value="🎪">🎪 Event</option>
+                    </select>
+                    <button onClick={addActivityType} className="add-btn">
+                      ➕ Tambah
+                    </button>
+                  </div>
+                </div>
+                
+                <div className="items-grid">
+                  {loadingActivityTypes ? (
+                    <div className="loading-container">
+                      <div className="loading-spinner"></div>
+                      <p>Memuat jenis kegiatan...</p>
+                    </div>
+                  ) : adminActivityTypes.length === 0 ? (
+                    <div className="empty-state">
+                      <p>Belum ada jenis kegiatan. Tambahkan yang pertama!</p>
+                    </div>
+                  ) : (
+                    adminActivityTypes.map((activityType, index) => (
+                      <div key={activityType.id || index} className="admin-item">
+                        <div className="item-preview">
+                          {editingActivityIcon === activityType.id ? (
+                            <div className="icon-picker-inline">
+                              <select
+                                defaultValue=""
+                                onChange={(e) => updateActivityTypeIcon(activityType.id, e.target.value)}
+                                className="icon-select-small"
+                                autoFocus
+                                onBlur={() => setEditingActivityIcon(null)}
+                              >
+                                <option value="">Pilih Icon</option>
+                                <option value="🏆">🏆 Lomba</option>
+                                <option value="🎓">🎓 Akademik</option>
+                                <option value="🏫">🏫 Institusi</option>
+                                <option value="🌍">🌍 Eksternal</option>
+                                <option value="📝">📝 Tugas</option>
+                                <option value="🎯">🎯 Target</option>
+                                <option value="🚀">🚀 Proyek</option>
+                                <option value="💡">💡 Inovasi</option>
+                                <option value="⭐">⭐ Prestasi</option>
+                                <option value="🎪">🎪 Event</option>
+                                <option value="🎊">🎊 Perayaan</option>
+                                <option value="🎉">🎉 Achievement</option>
+                              </select>
+                            </div>
+                          ) : (
+                            <span 
+                              className="icon-clickable" 
+                              onClick={() => setEditingActivityIcon(activityType.id)}
+                              title="Klik untuk mengubah icon"
+                            >
+                              {activityType.icon}
+                            </span>
+                          )}
+                          <span>{activityType.name}</span>
+                        </div>
+                      <button 
+                        onClick={() => deleteActivityType(index)} 
+                        className="delete-btn"
+                        title="Hapus jenis kegiatan"
+                      >
+                        🗑️
+                      </button>
+                    </div>
+                    ))
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </main>
   );
 }
+
